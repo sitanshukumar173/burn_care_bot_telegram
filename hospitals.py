@@ -74,15 +74,21 @@ class HospitalFinder:
         self._headers = {"User-Agent": user_agent}
 
     async def geocode(self, query: str) -> tuple[float, float, str] | None:
-        params = {"q": query, "format": "json", "limit": 1}
-        async with httpx.AsyncClient(headers=self._headers, timeout=15) as client:
-            resp = await client.get(NOMINATIM_URL, params=params)
-            resp.raise_for_status()
-            results = resp.json()
-        if not results:
-            return None
-        top = results[0]
-        return float(top["lat"]), float(top["lon"]), top.get("display_name", query)
+        for params in (
+            {"q": query, "format": "json", "limit": 1, "countrycodes": "in"},
+            {"q": query, "format": "json", "limit": 1},
+        ):
+            try:
+                async with httpx.AsyncClient(headers=self._headers, timeout=15) as client:
+                    resp = await client.get(NOMINATIM_URL, params=params)
+                    resp.raise_for_status()
+                    results = resp.json()
+                if results:
+                    top = results[0]
+                    return float(top["lat"]), float(top["lon"]), top.get("display_name", query)
+            except Exception as e:
+                log.warning("Geocoding error for %s: %s", query, e)
+        return None
 
     async def _overpass(self, lat: float, lon: float, radius_m: int) -> list[dict]:
         query = f"""
@@ -224,6 +230,7 @@ _NOT_A_PLACE = {
     "the", "a", "find", "show", "list", "me", "is", "hai", "kya", "batao",
     "मेरे", "मेरा", "मेरी", "मुझे", "हमारे", "हम", "यहाँ", "यहां", "घर", "आस", "कौन", "कोई", "सबसे", "क्या",
     "नज़दीकी", "नजदीकी",
+    "suggest", "tell", "give", "help", "recommend", "please", "pls", "plz", "send", "want", "need",
 }
 
 
@@ -249,5 +256,7 @@ def parse_hospital_request(text: str) -> tuple[bool, str | None]:
     if not _LOCATOR.search(text) and not place and len(text.split()) > 3:
         return False, None  # e.g. "should I go to hospital for a small blister?"
     if place:
-        place = re.sub(r"\s+(please|pls|plz)$", "", place, flags=re.IGNORECASE) or None
+        place = re.sub(r"\s+(please|pls|plz)$", "", place, flags=re.IGNORECASE).strip()
+        if place.lower() in _NOT_A_PLACE or place.lower() in {"near me", "around me", "close to me", "here"}:
+            place = None
     return True, place

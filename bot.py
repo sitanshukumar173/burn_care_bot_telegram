@@ -335,7 +335,7 @@ async def _reply_hospitals(update: Update, context: ContextTypes.DEFAULT_TYPE,
         lines.append("")
     lines.append(html.escape(t(lang, "hospitals_footer")))
     await update.effective_message.reply_text(
-        "\n".join(lines), parse_mode=ParseMode.HTML, disable_web_page_preview=True
+        "\n".join(lines), parse_mode=ParseMode.HTML, disable_web_page_preview=True, reply_markup=_main_keyboard(lang)
     )
 
 
@@ -349,8 +349,18 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def _ask_for_place(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     lang = _lang(context)
     context.user_data["awaiting_place"] = True
+    keyboard = ReplyKeyboardMarkup(
+        [
+            [KeyboardButton(t(lang, "btn_share_location"), request_location=True)],
+            [KeyboardButton(t(lang, "btn_first_aid")), KeyboardButton(t(lang, "btn_prevention"))],
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
     await update.effective_message.reply_text(
-        t(lang, "ask_place", numbers=_numbers(context)), reply_markup=_main_keyboard(lang)
+        t(lang, "ask_place", numbers=_numbers(context)),
+        parse_mode=ParseMode.HTML,
+        reply_markup=keyboard,
     )
 
 

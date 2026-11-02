@@ -42,6 +42,7 @@ T: dict[str, dict[str, str]] = {
     "btn_formula": {"en": "🧮 Burn % formula", "hi": "🧮 जलने का % फ़ॉर्मूला", "hinglish": "🧮 Burn % formula"},
     "btn_photo": {"en": "📸 Send a burn photo", "hi": "📸 फ़ोटो कैसे भेजें", "hinglish": "📸 Photo kaise bhejein"},
     "btn_language": {"en": "🌐 Language", "hi": "🌐 भाषा", "hinglish": "🌐 Bhasha"},
+    "btn_share_location": {"en": "📍 Share My Live Location", "hi": "📍 मेरी लोकेशन भेजें", "hinglish": "📍 Meri Live Location Bhejiye"},
 
     # ---------- welcome / help (HTML) ----------
     "welcome": {
@@ -525,17 +526,14 @@ Photo lene se <b>pehle</b> jale hisse ko 20 minute behte paani mein thanda karei
     # ---------- hospitals ----------
     "ask_place": {
         "en": "📍 <b>Find Nearby Hospitals &amp; Burn Centers</b>\n\n"
-              "Please type your city or area name (e.g. <i>Kanpur</i>, <i>Lucknow</i>, <i>Delhi</i>), "
-              "or share your location from your phone.\n\n"
-              "🚑 In an emergency, call {numbers} immediately.",
+              "Please tap the button below to share your location access, or type your exact city/area name (e.g. <i>Kanpur</i>, <i>Lucknow</i>):\n\n"
+              "🚑 Emergency: {numbers}",
         "hi": "📍 <b>नज़दीकी अस्पताल और बर्न सेंटर</b>\n\n"
-              "कृपया अपने शहर या इलाक़े का नाम लिखें (जैसे <i>Kanpur</i>, <i>Lucknow</i>, <i>Delhi</i>), "
-              "या फ़ोन से अपनी लोकेशन भेजें।\n\n"
-              "🚑 इमरजेंसी में तुरंत {numbers} पर कॉल करें।",
+              "कृपया नीचे दिए गए बटन से लोकेशन एक्सेस शेयर करें, या अपने शहर/इलाक़े का नाम लिखें (जैसे <i>Kanpur</i>, <i>Lucknow</i>):\n\n"
+              "🚑 इमरजेंसी: {numbers}",
         "hinglish": "📍 <b>Paas ke Hospital &amp; Burn Centers</b>\n\n"
-                    "Kripya apne shehar ya area ka naam likhiye (jaise <i>Kanpur</i>, <i>Lucknow</i>, <i>Delhi</i>), "
-                    "ya phone se apni location share karein.\n\n"
-                    "🚑 Emergency mein turant {numbers} par call karein.",
+                    "Kripya neeche button se location access share karein, ya apne shehar ka naam likhiye (jaise <i>Kanpur</i>, <i>Lucknow</i>):\n\n"
+                    "🚑 Emergency: {numbers}",
     },
     "place_not_found": {
         "en": "I couldn't find \"{place}\" on the map. Try a nearby town or city name, e.g. Bihta, Patna, "
