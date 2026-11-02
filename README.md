@@ -26,7 +26,7 @@ Tests: `pytest`
 ## Files
 
 | File | Purpose |
-|---|---|
+|---|----|
 | `bot.py` | Telegram handlers and the main entry point |
 | `llm.py` | Gemini calls: burn-only Q&A, photo analysis (structured JSON) |
 | `tbsa.py` | Lund & Browder table, %TBSA, severity triage, Parkland formula |
