@@ -17,6 +17,7 @@ from telegram import (
     Update,
 )
 from telegram.constants import ChatAction, ParseMode
+from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -501,9 +502,18 @@ def main() -> None:
         "bot_state.pickle",
         store_data=PersistenceInput(bot_data=False, chat_data=False, user_data=True, callback_data=False),
     )
+    request = HTTPXRequest(
+        connection_pool_size=16,
+        read_timeout=20.0,
+        write_timeout=20.0,
+        connect_timeout=15.0,
+        pool_timeout=10.0,
+    )
     app = (
         Application.builder()
         .token(config.telegram_token)
+        .request(request)
+        .concurrent_updates(True)
         .persistence(persistence)
         .post_init(post_init)
         .build()
