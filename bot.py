@@ -96,12 +96,6 @@ async def _send_long(update: Update, text: str, **kwargs) -> None:
 # ---------- language ----------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if LOGO_PATH.is_file():
-        try:
-            with open(LOGO_PATH, "rb") as photo:
-                await update.message.reply_photo(photo=photo)
-        except Exception as e:
-            log.warning("Could not send logo on start: %s", e)
     await update.message.reply_text(CHOOSE_LANGUAGE, reply_markup=_language_keyboard())
 
 
@@ -124,23 +118,7 @@ async def handle_language(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def _send_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     lang = _lang(context)
-    text = t(
-        lang, "welcome",
-        disclaimer=html.escape(t(lang, "disclaimer", numbers=_numbers(context))),
-        privacy=html.escape(t(lang, "privacy")),
-    )
-    if LOGO_PATH.is_file():
-        try:
-            with open(LOGO_PATH, "rb") as photo:
-                await update.effective_message.reply_photo(
-                    photo=photo,
-                    caption=text,
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=_main_keyboard(lang),
-                )
-                return
-        except Exception as e:
-            log.warning("Could not send welcome logo photo: %s", e)
+    text = t(lang, "welcome")
     await update.effective_message.reply_text(
         text, parse_mode=ParseMode.HTML, reply_markup=_main_keyboard(lang)
     )

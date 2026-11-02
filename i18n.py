@@ -46,34 +46,22 @@ T: dict[str, dict[str, str]] = {
     # ---------- welcome / help (HTML) ----------
     "welcome": {
         "en": (
-            "👋 Hi! I'm <b>CSJMU BurnCare Saathi</b> (CSJMU × MEDIOTECH). I only help with <b>burn injuries</b>:\n\n"
-            "• 📸 Send a photo of a burn and I'll estimate the burned body surface area (%TBSA) "
-            "using the Lund &amp; Browder chart that doctors use\n"
-            "• 🩹 First aid steps and what NOT to do\n"
-            "• 🛡 How to prevent burns\n"
-            "• 📍 Nearby hospitals: tap the button or type your city\n"
-            "• 💬 Ask any burn-related question\n\n"
-            "{disclaimer}\n\n🔒 {privacy}\n\n🌐 Change language: /language"
+            "👋 Welcome to <b>CSJMU BurnCare Saathi</b>\n"
+            "<i>In collaboration with CSJMU × MEDIOTECH</i>\n\n"
+            "Dedicated assistant for burn injuries &amp; first-aid support.\n\n"
+            "🌐 Change language: /language"
         ),
         "hi": (
-            "👋 नमस्ते! मैं <b>CSJMU BurnCare Saathi</b> (CSJMU × MEDIOTECH) हूँ। मैं सिर्फ़ <b>जलने की चोटों</b> में मदद करता हूँ:\n\n"
-            "• 📸 जले हुए हिस्से की फ़ोटो भेजें, मैं डॉक्टरों वाले Lund &amp; Browder चार्ट से अनुमान "
-            "लगाऊँगा कि शरीर का कितना प्रतिशत जला है (%TBSA)\n"
-            "• 🩹 प्राथमिक उपचार और क्या <b>नहीं</b> करना है\n"
-            "• 🛡 जलने से कैसे बचें\n"
-            "• 📍 नज़दीकी अस्पताल: बटन दबाएँ या अपने शहर का नाम लिखें\n"
-            "• 💬 जलने से जुड़ा कोई भी सवाल पूछें\n\n"
-            "{disclaimer}\n\n🔒 {privacy}\n\n🌐 भाषा बदलें: /language"
+            "👋 <b>CSJMU BurnCare Saathi</b> में आपका स्वागत है\n"
+            "<i>In collaboration with CSJMU × MEDIOTECH</i>\n\n"
+            "जलने की चोटों और प्राथमिक उपचार सहायता के लिए समर्पित सहायक।\n\n"
+            "🌐 भाषा बदलें: /language"
         ),
         "hinglish": (
-            "👋 Namaste! Main <b>CSJMU BurnCare Saathi</b> (CSJMU × MEDIOTECH) hoon. Main sirf <b>burns (jalne ki chot)</b> mein madad karta hoon:\n\n"
-            "• 📸 Jale hue hisse ki photo bhejiye, main doctors wale Lund &amp; Browder chart se andaza "
-            "lagaunga ki body ka kitna % jala hai (%TBSA)\n"
-            "• 🩹 First aid aur kya <b>nahi</b> karna hai\n"
-            "• 🛡 Jalne se kaise bachein\n"
-            "• 📍 Paas ke hospital: button dabaiye ya apne shehar ka naam likhiye\n"
-            "• 💬 Burns se juda koi bhi sawal poochiye\n\n"
-            "{disclaimer}\n\n🔒 {privacy}\n\n🌐 Bhasha badlein: /language"
+            "👋 Welcome to <b>CSJMU BurnCare Saathi</b>\n"
+            "<i>In collaboration with CSJMU × MEDIOTECH</i>\n\n"
+            "Burns aur first-aid support ke liye aapka saathi.\n\n"
+            "🌐 Bhasha badlein: /language"
         ),
     },
     "disclaimer": {
