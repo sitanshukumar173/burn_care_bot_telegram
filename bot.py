@@ -96,6 +96,12 @@ async def _send_long(update: Update, text: str, **kwargs) -> None:
 # ---------- language ----------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if LOGO_PATH.is_file():
+        try:
+            with open(LOGO_PATH, "rb") as photo:
+                await update.message.reply_photo(photo=photo)
+        except Exception as e:
+            log.warning("Could not send logo on start: %s", e)
     await update.message.reply_text(CHOOSE_LANGUAGE, reply_markup=_language_keyboard())
 
 
