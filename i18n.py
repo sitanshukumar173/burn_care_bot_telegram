@@ -46,21 +46,24 @@ T: dict[str, dict[str, str]] = {
     # ---------- welcome / help (HTML) ----------
     "welcome": {
         "en": (
-            "👋 Welcome to <b>CSJMU BurnCare Saathi</b>\n"
+            "🏥 <b>CSJMU BurnCare Saathi</b>\n"
             "<i>In collaboration with CSJMU × MEDIOTECH</i>\n\n"
-            "Dedicated assistant for burn injuries &amp; first-aid support.\n\n"
-            "🌐 Change language: /language"
+            "Instant, reliable burn first-aid guidance and emergency hospital support.\n\n"
+            "👇 Ask a question below or choose an option:\n\n"
+            "🌐 /language"
         ),
         "hi": (
-            "👋 <b>CSJMU BurnCare Saathi</b> में आपका स्वागत है\n"
+            "🏥 <b>CSJMU BurnCare Saathi</b>\n"
             "<i>In collaboration with CSJMU × MEDIOTECH</i>\n\n"
-            "जलने की चोटों और प्राथमिक उपचार सहायता के लिए समर्पित सहायक।\n\n"
+            "जलने पर तुरंत और सही प्राथमिक उपचार व नज़दीकी अस्पताल सहायता।\n\n"
+            "👇 नीचे अपना सवाल पूछें या कोई विकल्प चुनें:\n\n"
             "🌐 भाषा बदलें: /language"
         ),
         "hinglish": (
-            "👋 Welcome to <b>CSJMU BurnCare Saathi</b>\n"
+            "🏥 <b>CSJMU BurnCare Saathi</b>\n"
             "<i>In collaboration with CSJMU × MEDIOTECH</i>\n\n"
-            "Burns aur first-aid support ke liye aapka saathi.\n\n"
+            "Instant, reliable burn first-aid guidance aur hospital support.\n\n"
+            "👇 Niche apna sawal poochiye ya option chuniye:\n\n"
             "🌐 Bhasha badlein: /language"
         ),
     },
