@@ -221,6 +221,10 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     except LLMError:
         await message.reply_text(t(lang, "photo_failed"))
         return
+    except Exception as exc:
+        log.exception("Image assessment error: %s", exc)
+        await message.reply_text(t(lang, "photo_failed"))
+        return
 
     if not findings.is_burn or not findings.regions:
         await message.reply_text(t(lang, "not_burn"))

@@ -60,17 +60,20 @@ class BurnLLM:
             if self._cooldown_until.get(model, 0) > time.monotonic():
                 continue
             try:
-                response = await self._client.aio.models.generate_content(
-                    model=model, contents=contents, config=config
+                response = await asyncio.wait_for(
+                    self._client.aio.models.generate_content(
+                        model=model, contents=contents, config=config
+                    ),
+                    timeout=12,
                 )
                 break
-            except Exception as exc:  # overload (503), quota (429), network, safety blocks
+            except Exception as exc:  # overload (503), quota (429), network, safety blocks, timeout
                 log.warning("Gemini model %s failed: %s", model, str(exc)[:120])
                 message = str(exc)
                 if "RESOURCE_EXHAUSTED" in message:
                     self._cooldown_until[model] = time.monotonic() + QUOTA_COOLDOWN_S
-                elif "503" in message or "UNAVAILABLE" in message:
-                    # Avoid retrying an overloaded model on every user turn.
+                elif "503" in message or "UNAVAILABLE" in message or isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
+                    # Avoid retrying an overloaded or timed-out model on every user turn.
                     self._cooldown_until[model] = time.monotonic() + 120
         if response is None:
             log.error("All Gemini models failed or are out of quota")
