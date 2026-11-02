@@ -3,7 +3,10 @@
 Talks in English, Hindi or Hinglish; the user picks on /start (or later with /language).
 """
 
+import asyncio
+from contextlib import asynccontextmanager
 import html
+import io
 import logging
 from pathlib import Path
 import re
@@ -200,6 +203,55 @@ def _age_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([buttons[i:i + 2] for i in range(0, len(buttons), 2)])
 
 
+def optimize_image(raw_bytes: bytes, max_dim: int = 1200, quality: int = 85) -> tuple[bytes, str]:
+    """Compress and downscale image in memory to speed up Gemini upload and inference."""
+    try:
+        from PIL import Image, ImageOps
+        img = Image.open(io.BytesIO(raw_bytes))
+        img = ImageOps.exif_transpose(img)
+        img = img.convert("RGB")
+        w, h = img.size
+        if max(w, h) > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+        out = io.BytesIO()
+        img.save(out, format="JPEG", quality=quality, optimize=True)
+        return out.getvalue(), "image/jpeg"
+    except Exception as exc:
+        log.warning("Image optimization fallback: %s", exc)
+        return raw_bytes, "image/jpeg"
+
+
+@asynccontextmanager
+async def keep_typing(bot, chat_id: int, action: ChatAction = ChatAction.TYPING, interval: float = 3.5):
+    """Keep sending chat action so Telegram shows the user that work is continuously in progress."""
+    stop_event = asyncio.Event()
+
+    async def _loop():
+        try:
+            while not stop_event.is_set():
+                try:
+                    await bot.send_chat_action(chat_id, action)
+                except Exception:
+                    pass
+                try:
+                    await asyncio.wait_for(stop_event.wait(), timeout=interval)
+                except (asyncio.TimeoutError, TimeoutError):
+                    pass
+        except asyncio.CancelledError:
+            pass
+
+    task = asyncio.create_task(_loop())
+    try:
+        yield
+    finally:
+        stop_event.set()
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
 async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.message
     lang = _lang(context)
@@ -214,11 +266,12 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         tg_file = await doc.get_file()
         mime_type = doc.mime_type or "image/jpeg"
 
-    await context.bot.send_chat_action(message.chat_id, ChatAction.TYPING)
-    image = bytes(await tg_file.download_as_bytearray())
+    raw_bytes = bytes(await tg_file.download_as_bytearray())
+    image, mime_type = optimize_image(raw_bytes)
     llm: BurnLLM = context.bot_data["llm"]
     try:
-        findings = await llm.analyze_image(image, mime_type, message.caption or "", LLM_LANGUAGE[lang])
+        async with keep_typing(context.bot, message.chat_id):
+            findings = await llm.analyze_image(image, mime_type, message.caption or "", LLM_LANGUAGE[lang])
     except LLMError:
         await message.reply_text(t(lang, "photo_failed"))
         return
@@ -305,11 +358,11 @@ async def parkland(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def _reply_hospitals(update: Update, context: ContextTypes.DEFAULT_TYPE,
                            lat: float, lon: float, where: str) -> None:
     lang = _lang(context)
-    await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
     finder: HospitalFinder = context.bot_data["finder"]
     numbers = _numbers(context)
     try:
-        places = await finder.nearby(lat, lon)
+        async with keep_typing(context.bot, update.effective_chat.id, ChatAction.FIND_LOCATION):
+            places = await finder.nearby(lat, lon)
         log.info("Hospital lookup found %d places", len(places))
     except Exception:
         log.exception("Hospital lookup failed")
@@ -367,9 +420,9 @@ async def _ask_for_place(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def _hospitals_for_place(update: Update, context: ContextTypes.DEFAULT_TYPE, place: str) -> None:
     context.user_data.pop("awaiting_place", None)
     finder: HospitalFinder = context.bot_data["finder"]
-    await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
     try:
-        found = await finder.geocode(place)
+        async with keep_typing(context.bot, update.effective_chat.id, ChatAction.FIND_LOCATION):
+            found = await finder.geocode(place)
     except Exception:
         log.exception("Geocoding failed")
         found = None
@@ -429,11 +482,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await _hospitals_for_place(update, context, text)
         return
 
-    await context.bot.send_chat_action(update.message.chat_id, ChatAction.TYPING)
     llm: BurnLLM = context.bot_data["llm"]
     history: list = context.user_data.setdefault("history", [])
     try:
-        reply = await llm.answer(text, history, LLM_LANGUAGE[lang])
+        async with keep_typing(context.bot, update.message.chat_id):
+            reply = await llm.answer(text, history, LLM_LANGUAGE[lang])
     except LLMError:
         await update.message.reply_text(t(lang, "llm_down", numbers=_numbers(context)))
         return
@@ -550,7 +603,7 @@ def main() -> None:
     app.add_error_handler(on_error)
 
     log.info("CSJMU BurnCare Saathi bot started with models %s", ", ".join(config.gemini_models))
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    app.run_polling(allowed_updates=Update.ALL_TYPES, poll_interval=0.0)
 
 
 if __name__ == "__main__":

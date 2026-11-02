@@ -72,20 +72,27 @@ _MAJOR = re.compile(
 class HospitalFinder:
     def __init__(self, user_agent: str):
         self._headers = {"User-Agent": user_agent}
+        self._geocode_cache: dict[str, tuple[float, float, str] | None] = {}
 
     async def geocode(self, query: str) -> tuple[float, float, str] | None:
+        norm = query.strip().lower()
+        if norm in self._geocode_cache:
+            return self._geocode_cache[norm]
+
         for params in (
             {"q": query, "format": "json", "limit": 1, "countrycodes": "in"},
             {"q": query, "format": "json", "limit": 1},
         ):
             try:
-                async with httpx.AsyncClient(headers=self._headers, timeout=15) as client:
+                async with httpx.AsyncClient(headers=self._headers, timeout=8) as client:
                     resp = await client.get(NOMINATIM_URL, params=params)
                     resp.raise_for_status()
                     results = resp.json()
                 if results:
                     top = results[0]
-                    return float(top["lat"]), float(top["lon"]), top.get("display_name", query)
+                    res = (float(top["lat"]), float(top["lon"]), top.get("display_name", query))
+                    self._geocode_cache[norm] = res
+                    return res
             except Exception as e:
                 log.warning("Geocoding error for %s: %s", query, e)
         return None

@@ -47,12 +47,13 @@ class BurnLLM:
         self._cooldown_until: dict[str, float] = {}
         self._emergency_numbers = emergency_numbers
 
-    async def _generate(self, contents, system_prompt: str, schema: type[BaseModel]):
+    async def _generate(self, contents, system_prompt: str, schema: type[BaseModel], max_tokens: int = 500, timeout: float = 7.0):
         config = types.GenerateContentConfig(
             system_instruction=system_prompt,
             response_mime_type="application/json",
             response_schema=schema,
             temperature=0.2,
+            max_output_tokens=max_tokens,
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )
         response = None
@@ -64,7 +65,7 @@ class BurnLLM:
                     self._client.aio.models.generate_content(
                         model=model, contents=contents, config=config
                     ),
-                    timeout=12,
+                    timeout=timeout,
                 )
                 break
             except Exception as exc:  # overload (503), quota (429), network, safety blocks, timeout
@@ -74,7 +75,7 @@ class BurnLLM:
                     self._cooldown_until[model] = time.monotonic() + QUOTA_COOLDOWN_S
                 elif "503" in message or "UNAVAILABLE" in message or isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
                     # Avoid retrying an overloaded or timed-out model on every user turn.
-                    self._cooldown_until[model] = time.monotonic() + 120
+                    self._cooldown_until[model] = time.monotonic() + 300
         if response is None:
             log.error("All Gemini models failed or are out of quota")
             raise LLMError("all models failed")
@@ -95,7 +96,7 @@ class BurnLLM:
         ]
         contents.append(types.Content(role="user", parts=[types.Part.from_text(text=question)]))
         prompt = TEXT_SYSTEM_PROMPT.format(emergency_numbers=self._emergency_numbers, language=language)
-        return await self._generate(contents, prompt, TextReply)
+        return await self._generate(contents, prompt, TextReply, max_tokens=500, timeout=6.0)
 
     async def analyze_image(self, image: bytes, mime_type: str, caption: str, language: str) -> ImageFindings:
         parts = [types.Part.from_bytes(data=image, mime_type=mime_type)]
@@ -103,5 +104,10 @@ class BurnLLM:
             text=f"User caption: {caption}" if caption else "No caption was provided."
         ))
         return await self._generate(
-            [types.Content(role="user", parts=parts)], IMAGE_SYSTEM_PROMPT.format(language=language), ImageFindings
+            [types.Content(role="user", parts=parts)],
+            IMAGE_SYSTEM_PROMPT.format(language=language),
+            ImageFindings,
+            max_tokens=600,
+            timeout=7.5,
         )
+
