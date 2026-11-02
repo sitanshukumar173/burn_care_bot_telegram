@@ -73,7 +73,7 @@ def _get_case(context: ContextTypes.DEFAULT_TYPE) -> BurnCase:
 def _main_keyboard(lang: str) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
-            [KeyboardButton(t(lang, "btn_hospitals"), request_location=True)],
+            [KeyboardButton(t(lang, "btn_hospitals"))],
             [KeyboardButton(t(lang, "btn_first_aid")), KeyboardButton(t(lang, "btn_prevention"))],
             [KeyboardButton(t(lang, "btn_formula")), KeyboardButton(t(lang, "btn_photo"))],
             [KeyboardButton(t(lang, "btn_language"))],

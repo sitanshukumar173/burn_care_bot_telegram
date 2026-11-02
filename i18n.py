@@ -524,18 +524,18 @@ Photo lene se <b>pehle</b> jale hisse ko 20 minute behte paani mein thanda karei
 
     # ---------- hospitals ----------
     "ask_place": {
-        "en": "📍 Where are you?\n\n"
-              "• On your phone: tap the 📍 Nearby hospitals button below to share your location\n"
-              "• Or type your city or area, e.g. Bihta or Kankarbagh, Patna\n\n"
-              "In an emergency, call {numbers} now.",
-        "hi": "📍 आप कहाँ हैं?\n\n"
-              "• फ़ोन पर: नीचे 📍 नज़दीकी अस्पताल बटन दबाकर अपनी लोकेशन भेजें\n"
-              "• या अपने शहर/इलाक़े का नाम लिखें, जैसे Bihta या Kankarbagh, Patna\n\n"
-              "इमरजेंसी में अभी {numbers} पर कॉल करें।",
-        "hinglish": "📍 Aap kahan hain?\n\n"
-                    "• Phone par: neeche 📍 Paas ke hospital button dabakar apni location bhejiye\n"
-                    "• Ya apne shehar/area ka naam likhiye, jaise Bihta ya Kankarbagh, Patna\n\n"
-                    "Emergency mein abhi {numbers} par call karein.",
+        "en": "📍 <b>Find Nearby Hospitals &amp; Burn Centers</b>\n\n"
+              "Please type your city or area name (e.g. <i>Kanpur</i>, <i>Lucknow</i>, <i>Delhi</i>), "
+              "or share your location from your phone.\n\n"
+              "🚑 In an emergency, call {numbers} immediately.",
+        "hi": "📍 <b>नज़दीकी अस्पताल और बर्न सेंटर</b>\n\n"
+              "कृपया अपने शहर या इलाक़े का नाम लिखें (जैसे <i>Kanpur</i>, <i>Lucknow</i>, <i>Delhi</i>), "
+              "या फ़ोन से अपनी लोकेशन भेजें।\n\n"
+              "🚑 इमरजेंसी में तुरंत {numbers} पर कॉल करें।",
+        "hinglish": "📍 <b>Paas ke Hospital &amp; Burn Centers</b>\n\n"
+                    "Kripya apne shehar ya area ka naam likhiye (jaise <i>Kanpur</i>, <i>Lucknow</i>, <i>Delhi</i>), "
+                    "ya phone se apni location share karein.\n\n"
+                    "🚑 Emergency mein turant {numbers} par call karein.",
     },
     "place_not_found": {
         "en": "I couldn't find \"{place}\" on the map. Try a nearby town or city name, e.g. Bihta, Patna, "
