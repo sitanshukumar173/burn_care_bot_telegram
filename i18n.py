@@ -526,13 +526,16 @@ Photo lene se <b>pehle</b> jale hisse ko 20 minute behte paani mein thanda karei
     # ---------- hospitals ----------
     "ask_place": {
         "en": "📍 <b>Find Nearby Hospitals &amp; Burn Centers</b>\n\n"
-              "Please tap the button below to share your location access, or type your exact city/area name (e.g. <i>Kanpur</i>, <i>Lucknow</i>):\n\n"
+              "📱 <b>Mobile (iOS / Android):</b> Tap the button below to share live location.\n"
+              "💻 <b>PC / Mac / Web:</b> Type your city or area name (e.g. <i>Kanpur</i>, <i>Lucknow</i>, <i>Delhi</i>):\n\n"
               "🚑 Emergency: {numbers}",
         "hi": "📍 <b>नज़दीकी अस्पताल और बर्न सेंटर</b>\n\n"
-              "कृपया नीचे दिए गए बटन से लोकेशन एक्सेस शेयर करें, या अपने शहर/इलाक़े का नाम लिखें (जैसे <i>Kanpur</i>, <i>Lucknow</i>):\n\n"
+              "📱 <b>मोबाइल (iOS / Android):</b> नीचे दिए गए बटन से लोकेशन शेयर करें।\n"
+              "💻 <b>कंप्यूटर / Mac / लैपटॉप:</b> अपने शहर या इलाक़े का नाम लिखें (जैसे <i>Kanpur</i>, <i>Lucknow</i>, <i>Delhi</i>):\n\n"
               "🚑 इमरजेंसी: {numbers}",
         "hinglish": "📍 <b>Paas ke Hospital &amp; Burn Centers</b>\n\n"
-                    "Kripya neeche button se location access share karein, ya apne shehar ka naam likhiye (jaise <i>Kanpur</i>, <i>Lucknow</i>):\n\n"
+                    "📱 <b>Mobile (iOS / Android):</b> Neeche diye button se live location share karein.\n"
+                    "💻 <b>PC / Mac / Laptop:</b> Apne shehar ya area ka naam likhiye (jaise <i>Kanpur</i>, <i>Lucknow</i>, <i>Delhi</i>):\n\n"
                     "🚑 Emergency: {numbers}",
     },
     "place_not_found": {
