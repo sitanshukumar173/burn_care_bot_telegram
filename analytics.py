@@ -271,13 +271,6 @@ class Analytics:
             ["Interactions today", stats["today_events"]],
             ["Users this month", stats["month_users"]],
             ["Interactions this month", stats["month_events"]],
-            ["", ""],
-            ["INTERACTION BREAKDOWN", "COUNT"],
-            ["Commands", counts.get("command", 0)],
-            ["Text requests", counts.get("text", 0)],
-            ["Images", counts.get("image", 0)],
-            ["Locations", counts.get("location", 0)],
-            ["Button clicks", counts.get("callback", 0)],
         ]
         self._replace_table(overview, overview_rows, f"A1:B{len(overview_rows)}")
         self._format_dashboard(overview, len(overview_rows))
@@ -359,10 +352,6 @@ class Analytics:
             "horizontalAlignment": "CENTER",
         })
         worksheet.format("A4:B4", {
-            "backgroundColor": {"red": 0.16, "green": 0.45, "blue": 0.66},
-            "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}, "bold": True},
-        })
-        worksheet.format("A12:B12", {
             "backgroundColor": {"red": 0.16, "green": 0.45, "blue": 0.66},
             "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}, "bold": True},
         })
