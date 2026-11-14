@@ -36,9 +36,12 @@ GOOGLE_SHEETS_ID=your_spreadsheet_id
 GOOGLE_SERVICE_ACCOUNT_FILE=C:\path\to\service-account.json
 ```
 
-The bot creates `Overview`, `Users`, and `Events` tabs. `Overview` contains live totals for unique users and interactions; the other tabs
-contain the non-message event records used for reporting. The bot never sends
-message text or images to the sheet.
+The bot creates formatted `Overview`, `Users`, `Events`, `Daily Activity`,
+`Event Types`, and `Feature Usage` tabs. `Overview` contains live KPI totals;
+`Users` shows each user's total interactions, category breakdown, and latest
+activity; the remaining tabs support trend and feature analysis. Existing
+event rows are rebuilt on sync, so retries do not create duplicate rows. The
+bot never sends message text or images to the sheet.
 
 ## Files
 

@@ -93,7 +93,7 @@ class Analytics:
         if message and message.text and message.text.startswith("/"):
             return message.text.split(maxsplit=1)[0][:64]
         if update.callback_query:
-            return "inline_button"
+            return (update.callback_query.data or "inline_button")[:64]
         return ""
 
     def record_update(self, update: Update) -> None:
@@ -188,53 +188,189 @@ class Analytics:
         )
         users_sheet = self._worksheet(
             "Users",
-            ["Telegram User ID", "Username", "First Name", "First Seen", "Last Seen"],
+            [
+                "Telegram User ID", "Username", "First Name", "First Seen",
+                "Last Seen", "Total Interactions", "Commands", "Text",
+                "Images", "Locations", "Buttons", "Last Event Type",
+            ],
+        )
+        daily_sheet = self._worksheet(
+            "Daily Activity",
+            ["Date (UTC)", "Unique Users", "Interactions", "Commands", "Text", "Images", "Locations", "Buttons"],
+        )
+        event_types_sheet = self._worksheet(
+            "Event Types",
+            ["Event Type", "Interactions", "Share of Total"],
+        )
+        features_sheet = self._worksheet(
+            "Feature Usage",
+            ["Feature / Action", "Interactions", "Share of Total"],
         )
 
         stats = self.stats()
-        overview.clear()
         counts = stats["event_counts"]
+        with self._connect() as connection:
+            all_events = connection.execute(
+                "SELECT id, telegram_user_id, chat_id, event_type, created_at, details "
+                "FROM events ORDER BY id"
+            ).fetchall()
+            users = connection.execute(
+                """
+                SELECT u.telegram_user_id, u.username, u.first_name, u.first_seen, u.last_seen,
+                       COUNT(e.id) AS interactions,
+                       SUM(e.event_type = 'command') AS commands,
+                       SUM(e.event_type = 'text') AS text,
+                       SUM(e.event_type = 'image') AS images,
+                       SUM(e.event_type = 'location') AS locations,
+                       SUM(e.event_type = 'callback') AS buttons,
+                       (SELECT event_type FROM events e2
+                        WHERE e2.telegram_user_id = u.telegram_user_id
+                        ORDER BY e2.id DESC LIMIT 1) AS last_event_type
+                FROM users u
+                LEFT JOIN events e ON e.telegram_user_id = u.telegram_user_id
+                GROUP BY u.telegram_user_id
+                ORDER BY u.last_seen DESC
+                """
+            ).fetchall()
+            features = connection.execute(
+                """
+                SELECT CASE
+                           WHEN details <> '' THEN details
+                           ELSE event_type
+                       END AS feature,
+                       COUNT(*) AS interactions
+                FROM events
+                GROUP BY feature
+                ORDER BY interactions DESC, feature
+                """
+            ).fetchall()
+            daily = connection.execute(
+                """
+                SELECT substr(created_at, 1, 10) AS day,
+                       COUNT(DISTINCT telegram_user_id) AS users,
+                       COUNT(*) AS interactions,
+                       SUM(event_type = 'command') AS commands,
+                       SUM(event_type = 'text') AS text,
+                       SUM(event_type = 'image') AS images,
+                       SUM(event_type = 'location') AS locations,
+                       SUM(event_type = 'callback') AS buttons
+                FROM events
+                GROUP BY day
+                ORDER BY day DESC
+                """
+            ).fetchall()
+
         overview_rows = [
-            ["Metric", "Value"],
+            ["BURNCARE BOT ANALYTICS", "LIVE DASHBOARD"],
+            ["Last updated (UTC)", datetime.now(timezone.utc).isoformat()],
+            ["", ""],
+            ["KEY METRICS", "VALUE"],
             ["Unique users", stats["users"]],
             ["Total interactions", stats["events"]],
             ["Users today", stats["today_users"]],
             ["Interactions today", stats["today_events"]],
             ["Users this month", stats["month_users"]],
             ["Interactions this month", stats["month_events"]],
+            ["", ""],
+            ["INTERACTION BREAKDOWN", "COUNT"],
             ["Commands", counts.get("command", 0)],
             ["Text requests", counts.get("text", 0)],
             ["Images", counts.get("image", 0)],
             ["Locations", counts.get("location", 0)],
             ["Button clicks", counts.get("callback", 0)],
-            ["Last updated (UTC)", datetime.now(timezone.utc).isoformat()],
         ]
-        overview.update(
-            values=overview_rows,
-            range_name=f"A1:B{len(overview_rows)}",
-            value_input_option="USER_ENTERED",
-        )
-        with self._connect() as connection:
-            event = connection.execute(
-                "SELECT id, telegram_user_id, chat_id, event_type, created_at, details "
-                "FROM events WHERE id = ?",
-                (event_id,),
-            ).fetchone()
-            users = connection.execute(
-                "SELECT telegram_user_id, username, first_name, first_seen, last_seen "
-                "FROM users ORDER BY first_seen"
-            ).fetchall()
-        if event:
-            events_sheet.append_row(list(event), value_input_option="USER_ENTERED")
+        self._replace_table(overview, overview_rows, f"A1:B{len(overview_rows)}")
+        self._format_dashboard(overview, len(overview_rows))
+
+        event_rows = [
+            ["Event ID", "User ID", "Chat ID", "Event Type", "Created At", "Details"],
+            *[list(row) for row in all_events],
+        ]
+        self._replace_table(events_sheet, event_rows, f"A1:F{max(1, len(event_rows))}")
+
         users_sheet.clear()
-        users_sheet.update(
-            values=[
-                ["Telegram User ID", "Username", "First Name", "First Seen", "Last Seen"],
-                *[list(row) for row in users],
+        user_rows = [
+            [
+                "Telegram User ID", "Username", "First Name", "First Seen",
+                "Last Seen", "Total Interactions", "Commands", "Text",
+                "Images", "Locations", "Buttons", "Last Event Type",
             ],
-            range_name=f"A1:E{len(users) + 1}",
+            *[[0 if value is None else value for value in row] for row in users],
+        ]
+        self._replace_table(users_sheet, user_rows, f"A1:L{max(1, len(user_rows))}")
+
+        daily_rows = [
+            ["Date (UTC)", "Unique Users", "Interactions", "Commands", "Text", "Images", "Locations", "Buttons"],
+            *[list(row) for row in daily],
+        ]
+        self._replace_table(daily_sheet, daily_rows, f"A1:H{max(1, len(daily_rows))}")
+
+        event_type_rows = [["Event Type", "Interactions", "Share of Total"]]
+        event_type_rows.extend(
+            [event_type, count, f"{count / stats['events']:.1%}" if stats["events"] else "0.0%"]
+            for event_type, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+        )
+        self._replace_table(event_types_sheet, event_type_rows, f"A1:C{max(1, len(event_type_rows))}")
+        feature_rows = [["Feature / Action", "Interactions", "Share of Total"]]
+        feature_rows.extend(
+            [
+                row["feature"],
+                row["interactions"],
+                f"{row['interactions'] / stats['events']:.1%}" if stats["events"] else "0.0%",
+            ]
+            for row in features
+        )
+        self._replace_table(features_sheet, feature_rows, f"A1:C{max(1, len(feature_rows))}")
+        for sheet in (events_sheet, users_sheet, daily_sheet, event_types_sheet, features_sheet):
+            self._format_sheet(sheet, len(sheet.get_all_values()[0]) if sheet.get_all_values() else 1)
+
+    @staticmethod
+    def _replace_table(worksheet, values: list[list[Any]], range_name: str) -> None:
+        worksheet.clear()
+        worksheet.update(
+            values=values,
+            range_name=range_name,
             value_input_option="USER_ENTERED",
         )
+
+    @staticmethod
+    def _format_sheet(worksheet, column_count: int) -> None:
+        worksheet.freeze(rows=1)
+        worksheet.format("1:1", {
+            "backgroundColor": {"red": 0.12, "green": 0.28, "blue": 0.45},
+            "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}, "bold": True},
+            "horizontalAlignment": "CENTER",
+        })
+        worksheet.format(f"A1:{chr(64 + min(column_count, 26))}1", {
+            "backgroundColor": {"red": 0.12, "green": 0.28, "blue": 0.45},
+            "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}, "bold": True},
+        })
+        worksheet.columns_auto_resize(0, column_count)
+
+    @staticmethod
+    def _format_dashboard(worksheet, row_count: int) -> None:
+        worksheet.format("A1:B1", {
+            "backgroundColor": {"red": 0.06, "green": 0.24, "blue": 0.42},
+            "textFormat": {
+                "foregroundColor": {"red": 1, "green": 1, "blue": 1},
+                "bold": True,
+                "fontSize": 14,
+            },
+            "horizontalAlignment": "CENTER",
+        })
+        worksheet.format("A4:B4", {
+            "backgroundColor": {"red": 0.16, "green": 0.45, "blue": 0.66},
+            "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}, "bold": True},
+        })
+        worksheet.format("A12:B12", {
+            "backgroundColor": {"red": 0.16, "green": 0.45, "blue": 0.66},
+            "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}, "bold": True},
+        })
+        worksheet.format(f"B5:B{min(row_count, 10)}", {
+            "textFormat": {"bold": True, "fontSize": 12},
+            "horizontalAlignment": "RIGHT",
+        })
+        worksheet.columns_auto_resize(0, 2)
 
     def _worksheet(self, title: str, headers: list[str]):
         try:
