@@ -33,6 +33,7 @@ from telegram.ext import (
 )
 
 from config import load_config
+from analytics import Analytics
 from hospitals import HospitalFinder, parse_hospital_request
 from i18n import (
     CHOOSE_LANGUAGE,
@@ -510,6 +511,12 @@ async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
             pass  # usually the network is down, so this reply would fail too
 
 
+async def record_analytics(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    analytics: Analytics = context.bot_data.get("analytics")
+    if analytics:
+        analytics.record_update(update)
+
+
 BOT_COMMANDS = {
     None: [
         ("start", "Start / choose language"),
@@ -558,6 +565,12 @@ async def post_init(app: Application) -> None:
         )
 
 
+async def post_shutdown(app: Application) -> None:
+    analytics: Analytics | None = app.bot_data.get("analytics")
+    if analytics:
+        await analytics.wait_for_sync()
+
+
 def main() -> None:
     config = load_config()
     # Remember each user's language and current burn case across restarts.
@@ -579,12 +592,19 @@ def main() -> None:
         .concurrent_updates(True)
         .persistence(persistence)
         .post_init(post_init)
+        .post_shutdown(post_shutdown)
         .build()
     )
     app.bot_data["config"] = config
     app.bot_data["llm"] = BurnLLM(config.gemini_api_key, config.gemini_models, config.emergency_numbers)
     app.bot_data["finder"] = HospitalFinder(config.osm_user_agent)
+    app.bot_data["analytics"] = Analytics(
+        config.analytics_database,
+        config.google_sheets_id,
+        config.google_service_account_file,
+    )
 
+    app.add_handler(MessageHandler(filters.ALL, record_analytics), group=-1)
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("language", language_cmd))
     app.add_handler(CommandHandler("help", help_cmd))

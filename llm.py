@@ -3,7 +3,6 @@
 import asyncio
 import json
 import logging
-import time
 
 from google import genai
 from google.genai import types
@@ -14,9 +13,6 @@ from tbsa import Depth, Region
 
 log = logging.getLogger(__name__)
 
-QUOTA_COOLDOWN_S = 30 * 60  # free tier: 20 requests/day per model, so skip exhausted ones
-
-
 class TextReply(BaseModel):
     in_scope: bool
     answer: str
@@ -24,7 +20,8 @@ class TextReply(BaseModel):
 
 class RegionFinding(BaseModel):
     region: Region
-    fraction: float = Field(description="0.0-1.0 of that whole region that is burned")
+    fraction: float = Field(
+        description="0.0-1.0 of that whole region that is burned")
     depth: Depth
 
 
@@ -44,7 +41,6 @@ class BurnLLM:
     def __init__(self, api_key: str, models: list[str], emergency_numbers: str):
         self._client = genai.Client(api_key=api_key)
         self._models = models  # tried in order; free-tier models are often overloaded
-        self._cooldown_until: dict[str, float] = {}
         self._emergency_numbers = emergency_numbers
 
     async def _generate(self, contents, system_prompt: str, schema: type[BaseModel], max_tokens: int = 500, timeout: float = 10.0):
@@ -54,15 +50,11 @@ class BurnLLM:
             response_schema=schema,
             temperature=0.2,
             max_output_tokens=max_tokens,
-            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                disable=True),
         )
         response = None
-        # Try models not in cooldown; if all are cooling down, try primary models as fallback
-        candidates = [m for m in self._models if self._cooldown_until.get(m, 0) <= time.monotonic()]
-        if not candidates:
-            candidates = self._models[:2]
-
-        for model in candidates:
+        for model in self._models:
             try:
                 response = await asyncio.wait_for(
                     self._client.aio.models.generate_content(
@@ -71,16 +63,10 @@ class BurnLLM:
                     timeout=timeout,
                 )
                 break
-            except Exception as exc:  # overload (503), quota (429), network, safety blocks, timeout
+            # overload (503), quota (429), network, safety blocks, timeout
+            except Exception as exc:
                 err_text = str(exc)[:120] or type(exc).__name__
                 log.warning("Gemini model %s failed: %s", model, err_text)
-                message = str(exc)
-                if "RESOURCE_EXHAUSTED" in message or "429" in message:
-                    self._cooldown_until[model] = time.monotonic() + QUOTA_COOLDOWN_S
-                elif "503" in message or "UNAVAILABLE" in message:
-                    self._cooldown_until[model] = time.monotonic() + 60
-                elif isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
-                    self._cooldown_until[model] = time.monotonic() + 45
         if response is None:
             log.error("All Gemini models failed or are out of quota")
             raise LLMError("all models failed")
@@ -99,8 +85,10 @@ class BurnLLM:
             types.Content(role=role, parts=[types.Part.from_text(text=text)])
             for role, text in history
         ]
-        contents.append(types.Content(role="user", parts=[types.Part.from_text(text=question)]))
-        prompt = TEXT_SYSTEM_PROMPT.format(emergency_numbers=self._emergency_numbers, language=language)
+        contents.append(types.Content(role="user", parts=[
+                        types.Part.from_text(text=question)]))
+        prompt = TEXT_SYSTEM_PROMPT.format(
+            emergency_numbers=self._emergency_numbers, language=language)
         return await self._generate(contents, prompt, TextReply, max_tokens=500, timeout=8.0)
 
     async def analyze_image(self, image: bytes, mime_type: str, caption: str, language: str) -> ImageFindings:
@@ -115,4 +103,3 @@ class BurnLLM:
             max_tokens=600,
             timeout=12.0,
         )
-

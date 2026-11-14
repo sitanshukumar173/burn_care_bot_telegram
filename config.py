@@ -13,6 +13,9 @@ class Config:
     gemini_models: list[str]
     emergency_numbers: str
     osm_user_agent: str
+    analytics_database: str
+    google_sheets_id: str
+    google_service_account_file: str
 
 
 def load_config() -> Config:
@@ -27,4 +30,7 @@ def load_config() -> Config:
         ).split(",") if m.strip()],
         emergency_numbers=os.getenv("EMERGENCY_NUMBERS", "112 (emergency) / 108 (ambulance)"),
         osm_user_agent=os.getenv("OSM_USER_AGENT", "BurnCareTelegramBot/1.0"),
+        analytics_database=os.getenv("ANALYTICS_DATABASE", "analytics.db"),
+        google_sheets_id=os.getenv("GOOGLE_SHEETS_ID", ""),
+        google_service_account_file=os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", ""),
     )

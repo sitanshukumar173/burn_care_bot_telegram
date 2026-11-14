@@ -23,6 +23,23 @@ A Telegram chatbot that only answers questions about human burn injuries. It use
 
 Tests: `pytest`
 
+### Live analytics
+
+Analytics are stored locally in `analytics.db` and can be synchronized to a private
+Google Sheet after every Telegram update. Create a Google Cloud service account,
+enable the Google Sheets API, download its JSON key, and share the spreadsheet with
+the service account email as an Editor. Put the spreadsheet ID and JSON key path in
+`.env`:
+
+```text
+GOOGLE_SHEETS_ID=your_spreadsheet_id
+GOOGLE_SERVICE_ACCOUNT_FILE=C:\path\to\service-account.json
+```
+
+The bot creates `Overview`, `Users`, and `Events` tabs. `Overview` contains live totals for unique users and interactions; the other tabs
+contain the non-message event records used for reporting. The bot never sends
+message text or images to the sheet.
+
 ## Files
 
 | File | Purpose |
