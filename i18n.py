@@ -441,9 +441,29 @@ Photo lene se <b>pehle</b> jale hisse ko 20 minute behte paani mein thanda karei
 
     # ---------- burn report (HTML) ----------
     "report_title": {
-        "en": "🔥 <b>Burn assessment</b> (Lund &amp; Browder, {age})",
-        "hi": "🔥 <b>जलने का आकलन</b> (Lund &amp; Browder, {age})",
-        "hinglish": "🔥 <b>Burn assessment</b> (Lund &amp; Browder, {age})",
+        "en": "🔥 <b>BURN PHOTO ASSESSMENT</b>\n<i>Lund &amp; Browder · {age}</i>",
+        "hi": "🔥 <b>जलने की फ़ोटो जाँच</b>\n<i>Lund &amp; Browder · {age}</i>",
+        "hinglish": "🔥 <b>BURN PHOTO ASSESSMENT</b>\n<i>Lund &amp; Browder · {age}</i>",
+    },
+    "report_summary": {
+        "en": "📌 <b>SUMMARY</b>",
+        "hi": "📌 <b>सारांश</b>",
+        "hinglish": "📌 <b>SUMMARY</b>",
+    },
+    "report_findings": {
+        "en": "📍 <b>VISIBLE FINDINGS</b>",
+        "hi": "📍 <b>फ़ोटो में दिखे निष्कर्ष</b>",
+        "hinglish": "📍 <b>PHOTO FINDINGS</b>",
+    },
+    "report_recommendation": {
+        "en": "🚑 <b>RECOMMENDATION</b>",
+        "hi": "🚑 <b>सलाह</b>",
+        "hinglish": "🚑 <b>RECOMMENDATION</b>",
+    },
+    "report_safety": {
+        "en": "⚠️ <b>SAFETY NOTES</b>",
+        "hi": "⚠️ <b>सुरक्षा नोट्स</b>",
+        "hinglish": "⚠️ <b>SAFETY NOTES</b>",
     },
     "burned_areas": {"en": "<b>Burned areas</b>", "hi": "<b>जले हुए हिस्से</b>", "hinglish": "<b>Jale hue hisse</b>"},
     "region_line": {
@@ -668,14 +688,14 @@ Photo lene se <b>pehle</b> jale hisse ko 20 minute behte paani mein thanda karei
     "kind_hospital": {"en": "Hospital", "hi": "अस्पताल", "hinglish": "Hospital"},
     "kind_clinic": {"en": "Clinic", "hi": "क्लिनिक", "hinglish": "Clinic"},
     "tag_burn": {
-        "en": "🔥 BURN-CARE SPECIALIST · ",
-        "hi": "🔥 बर्न-केयर विशेषज्ञ · ",
-        "hinglish": "🔥 BURN-CARE SPECIALIST · ",
+        "en": "🔥 <b>BURN-CARE SPECIALIST</b>",
+        "hi": "🔥 <b>बर्न-केयर विशेषज्ञ</b>",
+        "hinglish": "🔥 <b>BURN-CARE SPECIALIST</b>",
     },
     "tag_major": {
-        "en": "⭐ Major/government — better for serious burns · ",
-        "hi": "⭐ बड़ा/सरकारी — गंभीर जलन के लिए बेहतर · ",
-        "hinglish": "⭐ Major/government — serious burns ke liye better · ",
+        "en": "⭐ <b>Major/government</b>",
+        "hi": "⭐ <b>बड़ा / सरकारी अस्पताल</b>",
+        "hinglish": "⭐ <b>Major/government</b>",
     },
     "directions": {"en": "🧭 Directions", "hi": "🧭 रास्ता देखें", "hinglish": "🧭 Rasta dekhein"},
     "hospitals_footer": {

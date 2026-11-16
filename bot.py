@@ -106,7 +106,7 @@ def _hospital_tags(place: Place, lang: str) -> str:
         tags.append(t(lang, "tag_burn"))
     if place.major:
         tags.append(t(lang, "tag_major"))
-    return "".join(tags)
+    return "\n".join(tags)
 
 
 def _hospital_follow_up(text: str, context: ContextTypes.DEFAULT_TYPE) -> str | None:
@@ -412,7 +412,15 @@ def _format_report(
     if side_uncertain:
         lines.append(t(lang, "side_uncertain"))
     lines.append("")
-    lines.append(t(lang, "burned_areas"))
+    lines.append(t(lang, "report_summary"))
+    lines.append(t(lang, f"level_{result.level}", numbers=html.escape(numbers)))
+    lines.append(t(lang, "tbsa_line", tbsa=f"{result.tbsa:.1f}"))
+    if result.superficial_only:
+        lines.append(t(lang, "superficial_line", pct=f"{result.superficial_only:.1f}"))
+    lines.append(t(lang, "mechanism_label"))
+    lines.append(f"• {html.escape(t(lang, 'mechanism_' + mechanism))}")
+    lines.append("")
+    lines.append(t(lang, "report_findings"))
     for burn, pct in result.rows:
         region = region_name(burn.region, lang)
         if side_uncertain and burn.region.value.startswith(("left_", "right_")):
@@ -432,27 +440,20 @@ def _format_report(
             pct=f"{pct:.1f}",
         ))
     lines.append("")
-    lines.append(t(lang, "tbsa_line", tbsa=f"{result.tbsa:.1f}"))
-    if result.superficial_only:
-        lines.append(t(lang, "superficial_line", pct=f"{result.superficial_only:.1f}"))
     lines.append(t(lang, "palm_check"))
     lines.append("")
-    lines.append(t(lang, f"level_{result.level}", numbers=html.escape(numbers)))
+    lines.append(t(lang, "report_recommendation"))
     lines.extend(f"• {html.escape(t(lang, 'reason_' + key, **params))}" for key, params in result.reasons)
-    lines.append("")
-    lines.append(t(lang, "mechanism_label"))
-    lines.append(f"• {html.escape(t(lang, 'mechanism_' + mechanism))}")
-    if red_flags:
-        lines.append("")
-        lines.append(t(lang, "noticed"))
-        lines.extend(f"• {html.escape(f)}" for f in red_flags)
-    lines.append("")
-    lines.append(t(lang, "elec_chem"))
-    lines.append("")
     lines.append(t(lang, "quick_actions"))
     lines.extend(f"• {html.escape(action)}" for action in _quick_actions(
         case, result, lang, numbers, mechanism
     ))
+    lines.append("")
+    lines.append(t(lang, "report_safety"))
+    if red_flags:
+        lines.append(t(lang, "noticed"))
+        lines.extend(f"• {html.escape(f)}" for f in red_flags)
+    lines.append(t(lang, "elec_chem"))
     lines.append("")
     lines.append(t(lang, "next_steps"))
     lines.append("")
@@ -663,8 +664,11 @@ async def _reply_hospitals(update: Update, context: ContextTypes.DEFAULT_TYPE,
     ]
     for p in places:
         lines.append(f"<b>{html.escape(p.name)}</b>")
+        tags = _hospital_tags(p, lang)
+        if tags:
+            lines.append(tags)
         lines.append(
-            f"{_hospital_tags(p, lang)}{t(lang, 'kind_' + p.kind)} · {p.distance_km:.1f} km"
+            f"🏥 {t(lang, 'kind_' + p.kind)} · {p.distance_km:.1f} km"
         )
         if p.phone:
             lines.append(f"📞 {html.escape(p.phone)}")
