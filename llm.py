@@ -15,6 +15,39 @@ from tbsa import Depth, Region
 
 log = logging.getLogger(__name__)
 
+_REGION_VALUES = {region.value for region in Region}
+_SIDELESS_REGIONS = {
+    "upper_arm_front",
+    "upper_arm_back",
+    "forearm_front",
+    "forearm_back",
+    "hand_palm",
+    "hand_back",
+    "thigh_front",
+    "thigh_back",
+    "lower_leg_front",
+    "lower_leg_back",
+    "foot_top",
+    "foot_sole",
+}
+
+
+def _normalize_vision_payload(payload: dict) -> dict:
+    """Normalize common bare-region outputs from providers without inventing a side."""
+    side_uncertain = bool(payload.get("side_uncertain", False))
+    for finding in payload.get("regions", []):
+        raw_region = str(finding.get("region", "")).strip().lower().replace(" ", "_")
+        if raw_region in _SIDELESS_REGIONS:
+            finding["region"] = f"right_{raw_region}"
+            side_uncertain = True
+        elif raw_region in _REGION_VALUES:
+            finding["region"] = raw_region
+        else:
+            finding["region"] = raw_region
+    payload["side_uncertain"] = side_uncertain
+    return payload
+
+
 class TextReply(BaseModel):
     in_scope: bool
     answer: str
@@ -126,7 +159,15 @@ class BurnLLM:
 
     async def analyze_image(self, image: bytes, mime_type: str, caption: str, language: str) -> ImageFindings:
         if self._vision_provider == "groq":
-            return await self._analyze_image_groq(image, mime_type, caption, language)
+            try:
+                return await self._analyze_image_groq(image, mime_type, caption, language)
+            except LLMError:
+                log.warning("Groq vision output failed validation; falling back to Gemini vision")
+        return await self._analyze_image_gemini(image, mime_type, caption, language)
+
+    async def _analyze_image_gemini(
+        self, image: bytes, mime_type: str, caption: str, language: str
+    ) -> ImageFindings:
         parts = [types.Part.from_bytes(data=image, mime_type=mime_type)]
         parts.append(types.Part.from_text(
             text=f"User caption: {caption}" if caption else "No caption was provided."
@@ -176,7 +217,8 @@ class BurnLLM:
                 )
                 response.raise_for_status()
             content = response.json()["choices"][0]["message"]["content"]
-            return ImageFindings.model_validate(json.loads(content))
+            payload = _normalize_vision_payload(json.loads(content))
+            return ImageFindings.model_validate(payload)
         except Exception as exc:
             log.error("Groq vision analysis failed: %s", str(exc)[:200])
             raise LLMError("vision model failed") from exc

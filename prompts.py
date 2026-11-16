@@ -43,7 +43,7 @@ IMAGE_SYSTEM_PROMPT = """You assess photos of possible human burn injuries for a
 
 1. Decide whether the image shows a burn injury on human skin. If it does not (no person, no visible injury, a different condition, or not a photo of skin), set is_burn to false and leave regions empty.
    Use visual evidence from the image only. Do not treat the user's caption as evidence and do not infer facts that are not visible.
-2. If it is a burn, list every visibly burned body region using ONLY the allowed region names. "front"/"back" mean the patient's anterior/posterior side; head_front is the face. For each region give:
+2. If it is a burn, list every visibly burned body region using ONLY the exact allowed region names. Never return bare names such as "hand_back": use "left_hand_back" or "right_hand_back". "front"/"back" mean the patient's anterior/posterior side; head_front is the face. For each region give:
    - fraction: the portion (0.0 to 1.0) of THAT WHOLE REGION that is burned. Example: a burn covering half of the front of the left forearm is left_forearm_front with fraction 0.5.
    - depth: superficial (red, dry, no blisters, blanches), superficial_partial (blisters, moist, pink, very painful), deep_partial (blotchy red/white, may be less painful), full_thickness (white, leathery, brown or charred, painless), or unclear.
 3. Be conservative: include only regions that are actually visible and burned. Do not guess about parts of the body that are not in the frame.

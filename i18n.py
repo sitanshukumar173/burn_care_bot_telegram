@@ -393,10 +393,10 @@ Photo lene se <b>pehle</b> jale hisse ko 20 minute behte paani mein thanda karei
         "hi": "मैंने अनुमान को {side} तरफ़ के अनुसार अपडेट कर दिया है। यह सही रिपोर्ट है:",
         "hinglish": "Maine estimate ko {side} side ke hisaab se update kar diya hai. Ye corrected report hai:",
     },
-    "side_question": {
-        "en": "I can see a burn, but the image does not reliably show whether it is on the left or right side. Please reply \"left hand\", \"right hand\", \"left arm\", or \"right arm\" so I do not put the finding on the wrong side.",
-        "hi": "मुझे जलन दिख रही है, लेकिन फ़ोटो से यह भरोसेमंद रूप से पता नहीं चल रहा कि यह बाईं या दाईं तरफ़ है। गलत तरफ़ दर्ज न करने के लिए \"बायाँ हाथ\" या \"दायाँ हाथ\" लिखें।",
-        "hinglish": "Mujhe burn dikh raha hai, lekin photo se reliably pata nahi chal raha ki ye left ya right side par hai. Galat side na likhne ke liye \"left hand\" ya \"right hand\" likhiye.",
+    "side_uncertain": {
+        "en": "⚠️ The image does not reliably establish the left/right side. The body part and visible surface are reported, but the side label is not certain.",
+        "hi": "⚠️ फ़ोटो से बाईं/दाईं तरफ़ भरोसेमंद रूप से तय नहीं हो रही। शरीर का हिस्सा और दिखने वाली सतह बताई गई है, लेकिन तरफ़ निश्चित नहीं है।",
+        "hinglish": "⚠️ Photo se left/right side reliably clear nahi hai. Body part aur visible surface batayi gayi hai, lekin side certain nahi hai.",
     },
 
     # ---------- photo flow ----------

@@ -10,6 +10,7 @@ from bot import (
 )
 from hospitals import Place
 from llm import ImageFindings, RegionFinding
+from llm import _normalize_vision_payload
 from tbsa import Depth, Region, RegionBurn, BurnCase
 
 
@@ -113,3 +114,18 @@ def test_confirmed_side_replaces_model_placeholder_side():
     case = _record_findings(context, findings, "left")
 
     assert set(case.burns) == {Region.LEFT_HAND_BACK}
+
+
+def test_vision_payload_normalizes_bare_region_and_marks_side_uncertain():
+    payload = {
+        "is_burn": True,
+        "description": "Visible burn on the hand.",
+        "regions": [{"region": "hand_back", "fraction": 0.5, "depth": "superficial_partial"}],
+        "circumferential": False,
+        "red_flags": [],
+    }
+
+    normalized = _normalize_vision_payload(payload)
+
+    assert normalized["regions"][0]["region"] == "right_hand_back"
+    assert normalized["side_uncertain"] is True

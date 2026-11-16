@@ -155,7 +155,12 @@ def _hospital_follow_up(text: str, context: ContextTypes.DEFAULT_TYPE) -> str | 
     )
 
 
-def _burn_context(case: BurnCase, description: str, red_flags: list[str]) -> str:
+def _burn_context(
+    case: BurnCase,
+    description: str,
+    red_flags: list[str],
+    side_uncertain: bool = False,
+) -> str:
     lines = ["Latest burn photo/report context:"]
     if description:
         lines.append(f"Photo description: {description}")
@@ -171,6 +176,8 @@ def _burn_context(case: BurnCase, description: str, red_flags: list[str]) -> str
         result = assess(case)
         lines.append(f"Patient age group: {case.age.value}")
         lines.append(f"Calculated photo estimate: {result.tbsa:.1f}% TBSA, triage level {result.level}.")
+    if side_uncertain:
+        lines.append("Left/right side was not reliable from the image.")
     if red_flags:
         lines.append(f"Photo red flags: {', '.join(red_flags)}")
     return "\n".join(lines)
@@ -196,15 +203,11 @@ def _record_findings(
         case.add(RegionBurn(region, finding.fraction, finding.depth))
     case.circumferential = case.circumferential or findings.circumferential
     context.user_data["last_findings"] = (findings.description, findings.red_flags)
+    context.user_data["last_side_uncertain"] = findings.side_uncertain
     context.user_data["last_burn_context"] = _burn_context(
-        case, findings.description, findings.red_flags
+        case, findings.description, findings.red_flags, findings.side_uncertain
     )
     return case
-
-
-def _confirmed_side(text: str) -> str | None:
-    match = re.search(r"\b(left|right)\b", text, re.IGNORECASE)
-    return match.group(1).lower() if match else None
 
 
 def _apply_side_correction(text: str, case: BurnCase) -> str | None:
@@ -296,6 +299,7 @@ async def handle_language(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     context.user_data.pop("history", None)  # earlier turns may be in another language
     context.user_data.pop("last_hospitals", None)
     context.user_data.pop("last_burn_context", None)
+    context.user_data.pop("last_side_uncertain", None)
     log.info("Language set to %s", lang)
     await query.edit_message_text(t(lang, "language_set"))
     await _send_welcome(update, context)
@@ -345,17 +349,36 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 # ---------- photo assessment ----------
 
-def _format_report(case: BurnCase, lang: str, numbers: str, description: str, red_flags: list[str]) -> str:
+def _format_report(
+    case: BurnCase,
+    lang: str,
+    numbers: str,
+    description: str,
+    red_flags: list[str],
+    side_uncertain: bool = False,
+) -> str:
     result = assess(case)
     lines = [t(lang, "report_title", age=age_label(case.age, lang))]
     if description:
         lines.append(f"<i>{html.escape(description)}</i>")
+    if side_uncertain:
+        lines.append(t(lang, "side_uncertain"))
     lines.append("")
     lines.append(t(lang, "burned_areas"))
     for burn, pct in result.rows:
+        region = region_name(burn.region, lang)
+        if side_uncertain and burn.region.value.startswith(("left_", "right_")):
+            side_text = {
+                "en": ("left", "right", "side unclear"),
+                "hi": ("बाएँ", "दाएँ", "तरफ़ स्पष्ट नहीं"),
+                "hinglish": ("left", "right", "side clear nahi"),
+            }[lang]
+            region = region.replace(side_text[0], side_text[2]).replace(
+                side_text[1], side_text[2]
+            )
         lines.append(t(
             lang, "region_line",
-            region=html.escape(region_name(burn.region, lang)),
+            region=html.escape(region),
             fraction=f"{burn.fraction:.0%}",
             depth=depth_label(burn.depth, lang),
             pct=f"{pct:.1f}",
@@ -467,11 +490,6 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await message.reply_text(t(lang, "not_burn"))
         return
 
-    if findings.side_uncertain:
-        context.user_data["pending_findings"] = findings
-        await message.reply_text(t(lang, "side_question"))
-        return
-
     case = _record_findings(context, findings)
     log.info("Photo assessed: %d regions", len(findings.regions))
 
@@ -482,7 +500,14 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     await _send_long(
         update,
-        _format_report(case, lang, _numbers(context), findings.description, findings.red_flags),
+        _format_report(
+            case,
+            lang,
+            _numbers(context),
+            findings.description,
+            findings.red_flags,
+            findings.side_uncertain,
+        ),
         parse_mode=ParseMode.HTML,
     )
 
@@ -498,10 +523,22 @@ async def handle_age(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     case.age = AgeGroup(query.data.split(":", 1)[1])
     await query.edit_message_text(t(lang, "age_set", age=age_label(case.age, lang)))
     description, red_flags = context.user_data.get("last_findings", ("", []))
-    context.user_data["last_burn_context"] = _burn_context(case, description, red_flags)
+    context.user_data["last_burn_context"] = _burn_context(
+        case,
+        description,
+        red_flags,
+        context.user_data.get("last_side_uncertain", False),
+    )
     await _send_long(
         update,
-        _format_report(case, lang, _numbers(context), description, red_flags),
+        _format_report(
+            case,
+            lang,
+            _numbers(context),
+            description,
+            red_flags,
+            context.user_data.get("last_side_uncertain", False),
+        ),
         parse_mode=ParseMode.HTML,
     )
 
@@ -670,29 +707,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
 
     case = context.user_data.get("case")
-    pending_findings: ImageFindings | None = context.user_data.get("pending_findings")
-    if pending_findings:
-        confirmed_side = _confirmed_side(text)
-        if not confirmed_side:
-            await update.effective_message.reply_text(t(lang, "side_question"))
-            return
-        context.user_data.pop("pending_findings", None)
-        case = _record_findings(context, pending_findings, confirmed_side)
-        if case.age is None:
-            await update.effective_message.reply_text(
-                t(lang, "age_question"),
-                parse_mode=ParseMode.HTML,
-                reply_markup=_age_keyboard(lang),
-            )
-            return
-        description, red_flags = context.user_data.get("last_findings", ("", []))
-        await _send_long(
-            update,
-            _format_report(case, lang, _numbers(context), description, red_flags),
-            parse_mode=ParseMode.HTML,
-        )
-        return
-
     if case and case.burns and case.age is not None:
         corrected_side = _apply_side_correction(text, case)
         if corrected_side:
