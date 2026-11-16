@@ -61,6 +61,19 @@ def test_hospital_follow_up_prefers_listed_burn_unit():
     assert "Burn Centre" in answer
 
 
+def test_normal_burn_question_is_not_routed_to_hospital_list():
+    context = SimpleNamespace(
+        user_data={
+            "last_hospitals": [
+                {"name": "Nearby Hospital", "distance_km": 0.4, "burn_unit": False, "major": False},
+            ]
+        },
+        bot_data={"config": SimpleNamespace(emergency_numbers="112")},
+    )
+
+    assert _hospital_follow_up("I got burned what should I do?", context) is None
+
+
 def test_hospital_tags_show_all_matching_categories():
     place = Place(
         name="Specialist Hospital",

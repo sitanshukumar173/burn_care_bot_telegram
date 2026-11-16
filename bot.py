@@ -67,6 +67,17 @@ HOSPITAL_FOLLOW_UP = re.compile(
     r"|कौन सा|कौनसा|सबसे अच्छा|बेहतर|नज़दीकी|नजदीकी|सरकारी",
     re.IGNORECASE,
 )
+HOSPITAL_WORD = re.compile(
+    r"\b(hospital|hospitals|clinic|doctor|burn\s*(?:unit|center|centre))\b"
+    r"|अस्पताल|हॉस्पिटल|क्लिनिक|डॉक्टर|बर्न\s*(?:यूनिट|सेंटर|सेंटर)",
+    re.IGNORECASE,
+)
+HOSPITAL_SELECTION = re.compile(
+    r"\b(which\s+(?:one|hospital)|best|better|recommend(?:ed)?|nearest|closest|"
+    r"government|major|suggest|kaunsa|kaun\s+sa|sabse\s+(?:accha|achha|best))\b"
+    r"|कौन सा|कौनसा|सबसे अच्छा|बेहतर|नज़दीकी|नजदीकी|सरकारी",
+    re.IGNORECASE,
+)
 LIMB_WORDS = re.compile(r"\b(hand|arm|forearm|हाथ|बांह|बाँह)\b", re.IGNORECASE)
 LOGO_PATH = Path(__file__).parent / "logo.jpg"
 
@@ -113,6 +124,8 @@ def _hospital_follow_up(text: str, context: ContextTypes.DEFAULT_TYPE) -> str | 
     """Answer simple questions about the most recently displayed hospital list."""
     hospitals = context.user_data.get("last_hospitals")
     if not hospitals or not HOSPITAL_FOLLOW_UP.search(text):
+        return None
+    if not HOSPITAL_WORD.search(text) and not HOSPITAL_SELECTION.search(text):
         return None
 
     asks_nearest = re.search(r"\b(nearest|closest)\b|नज़दीकी|नजदीकी", text, re.IGNORECASE)
