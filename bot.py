@@ -34,7 +34,7 @@ from telegram.ext import (
 
 from config import load_config
 from analytics import Analytics
-from hospitals import HospitalFinder, parse_hospital_request
+from hospitals import HospitalFinder, Place, parse_hospital_request
 from i18n import (
     CHOOSE_LANGUAGE,
     DEFAULT_LANG,
@@ -60,6 +60,13 @@ MAX_IMAGE_BYTES = 10 * 1024 * 1024
 TELEGRAM_LIMIT = 4000
 BUTTON_ACTIONS = button_actions()
 DEVANAGARI = re.compile(r"[ऀ-ॿ]")
+HOSPITAL_FOLLOW_UP = re.compile(
+    r"\b(which|what|who|best|better|recommend|recommended|nearest|closest|"
+    r"burn\s*(?:unit|center|centre)|government|major|kaunsa|kaun\s+sa|"
+    r"sabse\s+(?:accha|achha|best)|suggest)\b"
+    r"|कौन सा|कौनसा|सबसे अच्छा|बेहतर|नज़दीकी|नजदीकी|सरकारी",
+    re.IGNORECASE,
+)
 LOGO_PATH = Path(__file__).parent / "logo.jpg"
 
 
@@ -78,6 +85,107 @@ def _get_case(context: ContextTypes.DEFAULT_TYPE) -> BurnCase:
 def _trim_history(history: list[tuple[str, str]]) -> None:
     """Keep only the most recent three user/model exchanges in local state."""
     del history[:-MAX_HISTORY_MESSAGES]
+
+
+def _serialize_hospitals(places: list[Place]) -> list[dict]:
+    return [
+        {
+            "name": place.name,
+            "distance_km": place.distance_km,
+            "burn_unit": place.burn_unit,
+            "major": place.major,
+        }
+        for place in places
+    ]
+
+
+def _hospital_follow_up(text: str, context: ContextTypes.DEFAULT_TYPE) -> str | None:
+    """Answer simple questions about the most recently displayed hospital list."""
+    hospitals = context.user_data.get("last_hospitals")
+    if not hospitals or not HOSPITAL_FOLLOW_UP.search(text):
+        return None
+
+    asks_nearest = re.search(r"\b(nearest|closest)\b|नज़दीकी|नजदीकी", text, re.IGNORECASE)
+    asks_burn = re.search(r"\bburn\s*(?:unit|center|centre)\b|burn|जलन|बर्न", text, re.IGNORECASE)
+    asks_major = re.search(r"\b(government|major)\b|सरकारी", text, re.IGNORECASE)
+
+    if asks_nearest:
+        selected = min(hospitals, key=lambda hospital: hospital["distance_km"])
+        reason = "the nearest listed hospital"
+    else:
+        matching = hospitals
+        if asks_burn:
+            matching = [hospital for hospital in hospitals if hospital["burn_unit"]]
+        elif asks_major:
+            matching = [hospital for hospital in hospitals if hospital["major"]]
+        if not matching:
+            matching = hospitals
+        selected = sorted(
+            matching,
+            key=lambda hospital: (
+                not hospital["burn_unit"],
+                not hospital["major"],
+                hospital["distance_km"],
+            ),
+        )[0]
+        if selected["burn_unit"]:
+            reason = "a burn/plastic-surgery unit"
+        elif selected["major"]:
+            reason = "a major or government hospital"
+        else:
+            reason = "a nearby hospital"
+
+    return t(
+        _lang(context),
+        "hospital_recommendation",
+        name=html.escape(selected["name"]),
+        distance=f'{selected["distance_km"]:.1f}',
+        reason=reason,
+        numbers=html.escape(_numbers(context)),
+    )
+
+
+def _burn_context(case: BurnCase, description: str, red_flags: list[str]) -> str:
+    lines = ["Latest burn photo/report context:"]
+    if description:
+        lines.append(f"Photo description: {description}")
+    if case.burns:
+        areas = ", ".join(
+            f"{region_name(burn.region, 'en')}: {burn.fraction:.0%} of region, depth {burn.depth.value}"
+            for burn in case.burns.values()
+        )
+        lines.append(f"Visible/estimated areas: {areas}")
+    if case.age is None:
+        lines.append("Patient age group: not provided; TBSA and severity level are not calculated yet.")
+    else:
+        result = assess(case)
+        lines.append(f"Patient age group: {case.age.value}")
+        lines.append(f"Calculated photo estimate: {result.tbsa:.1f}% TBSA, triage level {result.level}.")
+    if red_flags:
+        lines.append(f"Photo red flags: {', '.join(red_flags)}")
+    return "\n".join(lines)
+
+
+def _llm_context(context: ContextTypes.DEFAULT_TYPE) -> str:
+    sections = []
+    burn_context = context.user_data.get("last_burn_context")
+    if burn_context:
+        sections.append(burn_context)
+    hospitals = context.user_data.get("last_hospitals")
+    if hospitals:
+        hospital_lines = ["Latest hospital list:"]
+        for hospital in hospitals:
+            labels = []
+            if hospital["burn_unit"]:
+                labels.append("burn/plastic-surgery unit")
+            if hospital["major"]:
+                labels.append("major/government")
+            label = f" ({', '.join(labels)})" if labels else ""
+            hospital_lines.append(
+                f"- {hospital['name']}: {hospital['distance_km']:.1f} km{label}"
+            )
+        sections.append("\n".join(hospital_lines))
+    return "\n\n".join(sections)
 
 
 def _main_keyboard(lang: str) -> ReplyKeyboardMarkup:
@@ -122,6 +230,8 @@ async def handle_language(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
     context.user_data["lang"] = lang
     context.user_data.pop("history", None)  # earlier turns may be in another language
+    context.user_data.pop("last_hospitals", None)
+    context.user_data.pop("last_burn_context", None)
     log.info("Language set to %s", lang)
     await query.edit_message_text(t(lang, "language_set"))
     await _send_welcome(update, context)
@@ -164,6 +274,8 @@ async def photo_tips(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.pop("case", None)
     context.user_data.pop("history", None)
+    context.user_data.pop("last_hospitals", None)
+    context.user_data.pop("last_burn_context", None)
     await update.effective_message.reply_text(t(_lang(context), "reset_done"))
 
 
@@ -296,6 +408,9 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         case.add(RegionBurn(f.region, f.fraction, f.depth))
     case.circumferential = case.circumferential or findings.circumferential
     context.user_data["last_findings"] = (findings.description, findings.red_flags)
+    context.user_data["last_burn_context"] = _burn_context(
+        case, findings.description, findings.red_flags
+    )
     log.info("Photo assessed: %d regions", len(findings.regions))
 
     if case.age is None:
@@ -321,6 +436,7 @@ async def handle_age(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     case.age = AgeGroup(query.data.split(":", 1)[1])
     await query.edit_message_text(t(lang, "age_set", age=age_label(case.age, lang)))
     description, red_flags = context.user_data.get("last_findings", ("", []))
+    context.user_data["last_burn_context"] = _burn_context(case, description, red_flags)
     await _send_long(
         update,
         _format_report(case, lang, _numbers(context), description, red_flags),
@@ -380,6 +496,7 @@ async def _reply_hospitals(update: Update, context: ContextTypes.DEFAULT_TYPE,
         await update.effective_message.reply_text(t(lang, "no_hospitals", where=where, numbers=numbers))
         return
 
+    context.user_data["last_hospitals"] = _serialize_hospitals(places)
     lines = [
         t(lang, "hospitals_title", where=html.escape(where)),
         t(lang, "emergency_line", numbers=html.escape(numbers)),
@@ -489,6 +606,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await _hospitals_for_place(update, context, text)
         return
 
+    hospital_answer = _hospital_follow_up(text, context)
+    if hospital_answer:
+        await update.effective_message.reply_text(hospital_answer, parse_mode=ParseMode.HTML)
+        return
+
     llm: BurnLLM = context.bot_data["llm"]
     history: list[tuple[str, str]] = context.user_data.setdefault("history", [])
     # Persistence can contain state written by an older version. Trim before
@@ -496,7 +618,12 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     _trim_history(history)
     try:
         async with keep_typing(context.bot, update.message.chat_id):
-            reply = await llm.answer(text, history, LLM_LANGUAGE[lang])
+            reply = await llm.answer(
+                text,
+                history,
+                LLM_LANGUAGE[lang],
+                recent_context=_llm_context(context),
+            )
     except LLMError:
         await update.message.reply_text(t(lang, "llm_down", numbers=_numbers(context)))
         return

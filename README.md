@@ -5,7 +5,7 @@ A Telegram chatbot that only answers questions about human burn injuries. It use
 - 📸 **Photo → burn %**: send a photo of a burn. Gemini identifies the burned body regions, what fraction of each is burned and how deep. The bot then calculates **%TBSA with the Lund & Browder chart** (the age-adjusted Rule of Nines used in burn units) in plain Python, and grades it as *home care / see a doctor / emergency* using ABA and NHS criteria. Several photos of different areas add up to one case.
 - 🩹 **First aid** and 🛡 **prevention**: fixed, reviewed texts (`prompts.py`). They don't change between LLM replies.
 - 📍 **Nearby hospitals**: share your Telegram location, or type `/hospitals <city>`. Uses OpenStreetMap (free, no key). Shows the nearest hospitals and flags large government/teaching hospitals and burn units.
-- 💬 **Burn-only Q&A**: Gemini answers with structured output that includes an `in_scope` flag. Anything not about burns gets a fixed refusal.
+- 💬 **Burn-only Q&A**: Gemini answers with structured output that includes an `in_scope` flag. Anything not about burns gets a fixed refusal. Follow-up questions can refer to the latest burn photo/report, hospital list, or earlier burn conversation.
 - 💧 `/parkland <kg>`: Parkland fluid formula, as a reference for clinicians.
 
 ## Setup

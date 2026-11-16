@@ -380,6 +380,14 @@ Photo lene se <b>pehle</b> jale hisse ko 20 minute behte paani mein thanda karei
                     "andaza, ghaav ki dekhbhaal, bachav aur paas ka hospital dhoondhna.\n\n"
                     "Aise poochiye: \"Garam tel se jalne par kya karein?\" ya burn ki photo bhejiye.",
     },
+    "hospital_recommendation": {
+        "en": "Based on the available map tags, I would prioritize <b>{name}</b> ({distance} km) because it is listed as {reason}. "
+              "This is not a quality ranking and map data may be incomplete. Call {numbers} for an emergency and call the hospital ahead if possible.",
+        "hi": "मैप पर उपलब्ध जानकारी के आधार पर मैं <b>{name}</b> ({distance} किमी) को प्राथमिकता दूँगा/दूँगी, क्योंकि इसे {reason} के रूप में सूचीबद्ध किया गया है। "
+             "यह गुणवत्ता की रैंकिंग नहीं है और मैप की जानकारी अधूरी हो सकती है। इमरजेंसी में {numbers} पर कॉल करें और संभव हो तो अस्पताल को पहले फ़ोन करें।",
+        "hinglish": "Map par available jankari ke hisaab se main <b>{name}</b> ({distance} km) ko priority dunga/dungi, kyunki ise {reason} ke roop mein list kiya gaya hai. "
+                    "Ye quality ranking nahi hai aur map data incomplete ho sakta hai. Emergency mein {numbers} par call karein aur mumkin ho to hospital ko pehle phone karein.",
+    },
 
     # ---------- photo flow ----------
     "image_too_large": {
@@ -560,14 +568,14 @@ Photo lene se <b>pehle</b> jale hisse ko 20 minute behte paani mein thanda karei
     "kind_hospital": {"en": "Hospital", "hi": "अस्पताल", "hinglish": "Hospital"},
     "kind_clinic": {"en": "Clinic", "hi": "क्लिनिक", "hinglish": "Clinic"},
     "tag_burn": {
-        "en": "🔥 Burn/plastic surgery unit · ",
-        "hi": "🔥 बर्न/प्लास्टिक सर्जरी यूनिट · ",
-        "hinglish": "🔥 Burn/plastic surgery unit · ",
+        "en": "🔥 BURN-CARE SPECIALIST · ",
+        "hi": "🔥 बर्न-केयर विशेषज्ञ · ",
+        "hinglish": "🔥 BURN-CARE SPECIALIST · ",
     },
     "tag_major": {
-        "en": "⭐ Major/government hospital · ",
-        "hi": "⭐ बड़ा/सरकारी अस्पताल · ",
-        "hinglish": "⭐ Bada/sarkari hospital · ",
+        "en": "⭐ Major/government — better for serious burns · ",
+        "hi": "⭐ बड़ा/सरकारी — गंभीर जलन के लिए बेहतर · ",
+        "hinglish": "⭐ Major/government — serious burns ke liye better · ",
     },
     "directions": {"en": "🧭 Directions", "hi": "🧭 रास्ता देखें", "hinglish": "🧭 Rasta dekhein"},
     "hospitals_footer": {

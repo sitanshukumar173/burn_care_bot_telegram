@@ -79,7 +79,13 @@ class BurnLLM:
             log.error("Unparseable Gemini response: %r", response.text)
             raise LLMError("unparseable response") from exc
 
-    async def answer(self, question: str, history: list[tuple[str, str]], language: str) -> TextReply:
+    async def answer(
+        self,
+        question: str,
+        history: list[tuple[str, str]],
+        language: str,
+        recent_context: str = "",
+    ) -> TextReply:
         """history: previous (role, text) turns, role is "user" or "model"."""
         contents = [
             types.Content(role=role, parts=[types.Part.from_text(text=text)])
@@ -88,7 +94,10 @@ class BurnLLM:
         contents.append(types.Content(role="user", parts=[
                         types.Part.from_text(text=question)]))
         prompt = TEXT_SYSTEM_PROMPT.format(
-            emergency_numbers=self._emergency_numbers, language=language)
+            emergency_numbers=self._emergency_numbers,
+            language=language,
+            conversation_context=recent_context or "No additional burn or hospital context is available.",
+        )
         return await self._generate(contents, prompt, TextReply, max_tokens=500, timeout=8.0)
 
     async def analyze_image(self, image: bytes, mime_type: str, caption: str, language: str) -> ImageFindings:

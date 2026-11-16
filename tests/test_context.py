@@ -1,4 +1,6 @@
-from bot import MAX_HISTORY_MESSAGES, _trim_history
+from types import SimpleNamespace
+
+from bot import MAX_HISTORY_MESSAGES, _hospital_follow_up, _trim_history
 
 
 def test_context_keeps_only_three_latest_exchanges():
@@ -27,3 +29,20 @@ def test_context_trimming_does_not_change_short_history():
     _trim_history(history)
 
     assert history == [("user", "question"), ("model", "answer")]
+
+
+def test_hospital_follow_up_prefers_listed_burn_unit():
+    context = SimpleNamespace(
+        user_data={
+            "last_hospitals": [
+                {"name": "Nearest Hospital", "distance_km": 2.0, "burn_unit": False, "major": False},
+                {"name": "Burn Centre", "distance_km": 8.0, "burn_unit": True, "major": False},
+            ]
+        },
+        bot_data={"config": SimpleNamespace(emergency_numbers="112")},
+    )
+
+    answer = _hospital_follow_up("which one is best?", context)
+
+    assert answer is not None
+    assert "Burn Centre" in answer
