@@ -30,6 +30,14 @@ _SIDELESS_REGIONS = {
     "foot_top",
     "foot_sole",
 }
+_MECHANISMS = {
+    "thermal_or_contact",
+    "chemical_possible",
+    "electrical_possible",
+    "friction_possible",
+    "sun_or_radiation_possible",
+    "unknown",
+}
 
 
 def _normalize_vision_payload(payload: dict) -> dict:
@@ -45,6 +53,8 @@ def _normalize_vision_payload(payload: dict) -> dict:
         else:
             finding["region"] = raw_region
     payload["side_uncertain"] = side_uncertain
+    mechanism = str(payload.get("mechanism", "unknown")).strip().lower()
+    payload["mechanism"] = mechanism if mechanism in _MECHANISMS else "unknown"
     return payload
 
 
@@ -67,6 +77,7 @@ class ImageFindings(BaseModel):
     circumferential: bool
     red_flags: list[str]
     side_uncertain: bool = False
+    mechanism: str = "unknown"
 
 
 class LLMError(Exception):

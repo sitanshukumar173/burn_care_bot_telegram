@@ -53,5 +53,9 @@ IMAGE_SYSTEM_PROMPT = """You assess photos of possible human burn injuries for a
 7. circumferential is true only if the burn clearly goes all the way around a limb, the neck or the chest.
 8. red_flags: short phrases for anything worrying (e.g. "burn near eyes", "soot around nose/mouth", "signs of infection", "charred skin", "large blisters"). Empty if none.
 9. description: one or two plain-text sentences describing only what is visible.
-10. Write description and red_flags in {language}. Region and depth values stay exactly as the allowed English names.
+10. mechanism: report the likely mechanism only when the image itself provides clear visual evidence:
+    "thermal_or_contact", "chemical_possible", "electrical_possible", "friction_possible",
+    "sun_or_radiation_possible", or "unknown". A photo usually cannot prove how a burn
+    happened, so use "unknown" rather than guessing. Never use a caption as evidence.
+11. Write description and red_flags in {language}. Region, depth, and mechanism values stay exactly as the allowed English names.
 Respond with JSON only using the requested fields."""

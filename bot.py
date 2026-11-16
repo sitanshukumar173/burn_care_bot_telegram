@@ -48,7 +48,7 @@ from i18n import (
     t,
 )
 from llm import BurnLLM, ImageFindings, LLMError
-from tbsa import CHILD_GROUPS, AgeGroup, BurnCase, Region, RegionBurn, assess, parkland_ml
+from tbsa import CHILD_GROUPS, SPECIAL_AREAS, AgeGroup, BurnCase, Region, RegionBurn, assess, parkland_ml
 
 logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s", level=logging.INFO)
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -160,6 +160,7 @@ def _burn_context(
     description: str,
     red_flags: list[str],
     side_uncertain: bool = False,
+    mechanism: str = "unknown",
 ) -> str:
     lines = ["Latest burn photo/report context:"]
     if description:
@@ -180,6 +181,7 @@ def _burn_context(
         lines.append("Left/right side was not reliable from the image.")
     if red_flags:
         lines.append(f"Photo red flags: {', '.join(red_flags)}")
+    lines.append(f"Photo mechanism assessment: {mechanism}")
     return "\n".join(lines)
 
 
@@ -203,9 +205,10 @@ def _record_findings(
         case.add(RegionBurn(region, finding.fraction, finding.depth))
     case.circumferential = case.circumferential or findings.circumferential
     context.user_data["last_findings"] = (findings.description, findings.red_flags)
+    context.user_data["last_mechanism"] = findings.mechanism
     context.user_data["last_side_uncertain"] = findings.side_uncertain
     context.user_data["last_burn_context"] = _burn_context(
-        case, findings.description, findings.red_flags, findings.side_uncertain
+        case, findings.description, findings.red_flags, findings.side_uncertain, findings.mechanism
     )
     return case
 
@@ -300,6 +303,7 @@ async def handle_language(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     context.user_data.pop("last_hospitals", None)
     context.user_data.pop("last_burn_context", None)
     context.user_data.pop("last_side_uncertain", None)
+    context.user_data.pop("last_mechanism", None)
     log.info("Language set to %s", lang)
     await query.edit_message_text(t(lang, "language_set"))
     await _send_welcome(update, context)
@@ -344,10 +348,44 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.pop("history", None)
     context.user_data.pop("last_hospitals", None)
     context.user_data.pop("last_burn_context", None)
+    context.user_data.pop("last_mechanism", None)
     await update.effective_message.reply_text(t(_lang(context), "reset_done"))
 
 
 # ---------- photo assessment ----------
+
+def _quick_actions(
+    case: BurnCase,
+    result,
+    lang: str,
+    numbers: str,
+    mechanism: str,
+) -> list[str]:
+    """Build conservative first-aid actions from structured photo findings."""
+    actions = [
+        t(lang, "action_stop_cause"),
+        t(lang, "action_cool"),
+        t(lang, "action_cover"),
+    ]
+    if mechanism == "chemical_possible":
+        actions.insert(1, t(lang, "action_chemical"))
+    elif mechanism == "electrical_possible":
+        actions.insert(1, t(lang, "action_electrical"))
+    if any(burn.depth.value in ("superficial_partial", "deep_partial", "full_thickness")
+           for burn in case.burns.values()):
+        actions.append(t(lang, "action_blisters"))
+
+    if result.level == "emergency":
+        actions.append(t(lang, "action_hospital_now", numbers=html.escape(numbers)))
+    elif result.level == "hospital":
+        actions.append(t(lang, "action_hospital_today"))
+    else:
+        actions.append(t(lang, "action_monitor"))
+
+    if any(burn.region in SPECIAL_AREAS for burn in case.burns.values()):
+        actions.append(t(lang, "action_special_site"))
+    return actions
+
 
 def _format_report(
     case: BurnCase,
@@ -356,8 +394,18 @@ def _format_report(
     description: str,
     red_flags: list[str],
     side_uncertain: bool = False,
+    mechanism: str = "unknown",
 ) -> str:
     result = assess(case)
+    allowed_mechanisms = {
+        "thermal_or_contact",
+        "chemical_possible",
+        "electrical_possible",
+        "friction_possible",
+        "sun_or_radiation_possible",
+        "unknown",
+    }
+    mechanism = mechanism if mechanism in allowed_mechanisms else "unknown"
     lines = [t(lang, "report_title", age=age_label(case.age, lang))]
     if description:
         lines.append(f"<i>{html.escape(description)}</i>")
@@ -391,12 +439,20 @@ def _format_report(
     lines.append("")
     lines.append(t(lang, f"level_{result.level}", numbers=html.escape(numbers)))
     lines.extend(f"• {html.escape(t(lang, 'reason_' + key, **params))}" for key, params in result.reasons)
+    lines.append("")
+    lines.append(t(lang, "mechanism_label"))
+    lines.append(f"• {html.escape(t(lang, 'mechanism_' + mechanism))}")
     if red_flags:
         lines.append("")
         lines.append(t(lang, "noticed"))
         lines.extend(f"• {html.escape(f)}" for f in red_flags)
     lines.append("")
     lines.append(t(lang, "elec_chem"))
+    lines.append("")
+    lines.append(t(lang, "quick_actions"))
+    lines.extend(f"• {html.escape(action)}" for action in _quick_actions(
+        case, result, lang, numbers, mechanism
+    ))
     lines.append("")
     lines.append(t(lang, "next_steps"))
     lines.append("")
@@ -507,6 +563,7 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             findings.description,
             findings.red_flags,
             findings.side_uncertain,
+            findings.mechanism,
         ),
         parse_mode=ParseMode.HTML,
     )
@@ -523,11 +580,13 @@ async def handle_age(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     case.age = AgeGroup(query.data.split(":", 1)[1])
     await query.edit_message_text(t(lang, "age_set", age=age_label(case.age, lang)))
     description, red_flags = context.user_data.get("last_findings", ("", []))
+    mechanism = context.user_data.get("last_mechanism", "unknown")
     context.user_data["last_burn_context"] = _burn_context(
         case,
         description,
         red_flags,
         context.user_data.get("last_side_uncertain", False),
+        mechanism,
     )
     await _send_long(
         update,
@@ -538,6 +597,7 @@ async def handle_age(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             description,
             red_flags,
             context.user_data.get("last_side_uncertain", False),
+            mechanism,
         ),
         parse_mode=ParseMode.HTML,
     )
@@ -711,15 +771,19 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         corrected_side = _apply_side_correction(text, case)
         if corrected_side:
             description, red_flags = context.user_data.get("last_findings", ("", []))
+            mechanism = context.user_data.get("last_mechanism", "unknown")
             context.user_data["last_burn_context"] = _burn_context(
-                case, description, red_flags
+                case, description, red_flags, mechanism=mechanism
             )
             await update.effective_message.reply_text(
                 t(lang, "side_correction", side=corrected_side.capitalize())
             )
             await _send_long(
                 update,
-                _format_report(case, lang, _numbers(context), description, red_flags),
+                _format_report(
+                    case, lang, _numbers(context), description, red_flags,
+                    mechanism=mechanism,
+                ),
                 parse_mode=ParseMode.HTML,
             )
             return

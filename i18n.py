@@ -540,6 +540,96 @@ Photo lene se <b>pehle</b> jale hisse ko 20 minute behte paani mein thanda karei
         "hinglish": "Aage: jale hisse ko 20 minute behte paani mein rakhein (/firstaid), 📍 Paas ke hospital dabayein, "
                     "ya dusre jale hisson ki photo bhejiye taaki wo jud sakein. Naye insaan ke liye /reset.",
     },
+    "mechanism_label": {
+        "en": "🔥 Likely burn mechanism from image",
+        "hi": "🔥 फ़ोटो से संभावित जलने का कारण",
+        "hinglish": "🔥 Photo se likely burn mechanism",
+    },
+    "mechanism_thermal_or_contact": {
+        "en": "Thermal/contact pattern is possible; the image cannot prove the exact source.",
+        "hi": "गर्मी/गर्म वस्तु से जलने का पैटर्न संभव है; फ़ोटो सटीक स्रोत साबित नहीं कर सकती।",
+        "hinglish": "Heat/contact burn ka pattern possible hai; photo exact source prove nahi kar sakti.",
+    },
+    "mechanism_chemical_possible": {
+        "en": "Chemical exposure is possible; confirm what touched the skin.",
+        "hi": "केमिकल संपर्क संभव है; त्वचा पर क्या लगा था, इसकी पुष्टि करें।",
+        "hinglish": "Chemical exposure possible hai; skin par kya laga tha confirm karein.",
+    },
+    "mechanism_electrical_possible": {
+        "en": "An electrical injury is possible; switch off power before touching the person and seek emergency care.",
+        "hi": "बिजली से चोट संभव है; व्यक्ति को छूने से पहले बिजली बंद करें और तुरंत आपात इलाज लें।",
+        "hinglish": "Electrical injury possible hai; person ko chhoone se pehle power band karein aur emergency care lein.",
+    },
+    "mechanism_friction_possible": {
+        "en": "Friction injury is possible; the image cannot prove the cause.",
+        "hi": "रगड़ से चोट संभव है; फ़ोटो कारण साबित नहीं कर सकती।",
+        "hinglish": "Friction injury possible hai; photo cause prove nahi kar sakti.",
+    },
+    "mechanism_sun_or_radiation_possible": {
+        "en": "Sun/radiation exposure is possible; the image cannot prove the source.",
+        "hi": "धूप/रेडिएशन से जलना संभव है; फ़ोटो स्रोत साबित नहीं कर सकती।",
+        "hinglish": "Sun/radiation exposure possible hai; photo source prove nahi kar sakti.",
+    },
+    "mechanism_unknown": {
+        "en": "The cause cannot be determined reliably from the image alone; confirm how it happened.",
+        "hi": "केवल फ़ोटो से कारण भरोसेमंद रूप से तय नहीं हो सकता; यह कैसे हुआ, बताना ज़रूरी है।",
+        "hinglish": "Sirf photo se cause reliably pata nahi chal sakta; ye kaise hua confirm karein.",
+    },
+    "quick_actions": {
+        "en": "✅ <b>What to do now</b>",
+        "hi": "✅ <b>अभी क्या करें</b>",
+        "hinglish": "✅ <b>Abhi kya karein</b>",
+    },
+    "action_stop_cause": {
+        "en": "Stop contact with the heat/source. Remove nearby jewellery and loose clothing unless stuck.",
+        "hi": "गर्मी/स्रोत से संपर्क रोकें। पास के गहने और ढीले कपड़े हटाएँ, लेकिन चिपके कपड़े न खींचें।",
+        "hinglish": "Heat/source se contact rokein. Paas ki jewellery aur loose kapde hatayein, chipke kapde na kheenchein.",
+    },
+    "action_cool": {
+        "en": "Cool under cool running water for 20 minutes; keep the rest of the person warm.",
+        "hi": "जले हिस्से को 20 मिनट ठंडे बहते पानी से ठंडा करें; बाकी शरीर को गर्म रखें।",
+        "hinglish": "Jale hisse ko 20 minute thande behte paani se cool karein; baaki body ko warm rakhein.",
+    },
+    "action_chemical": {
+        "en": "If chemical exposure is possible: brush off dry chemical, remove contaminated clothing, and rinse with running water for at least 20 minutes. Do not neutralize it with another chemical.",
+        "hi": "अगर केमिकल संपर्क संभव है: सूखा केमिकल झाड़ें, दूषित कपड़े हटाएँ और कम से कम 20 मिनट बहते पानी से धोएँ। दूसरे केमिकल से निष्क्रिय न करें।",
+        "hinglish": "Chemical exposure possible ho to: sookha chemical jhaad dein, contaminated kapde hataayein aur kam se kam 20 minute behte paani se dhoyein. Kisi doosre chemical se neutralize na karein.",
+    },
+    "action_electrical": {
+        "en": "If electrical injury is possible: switch off the power before touching the person. Do not approach live wires.",
+        "hi": "अगर बिजली की चोट संभव है: व्यक्ति को छूने से पहले बिजली बंद करें। चालू तारों के पास न जाएँ।",
+        "hinglish": "Electrical injury possible ho to: person ko chhoone se pehle power band karein. Live wires ke paas na jaayein.",
+    },
+    "action_cover": {
+        "en": "Cover loosely with cling film or a clean non-fluffy dressing. Do not apply ice, butter, oil, toothpaste or creams.",
+        "hi": "क्लिंग फ़िल्म या साफ़ बिना रोएँ वाली पट्टी से ढीला ढकें। बर्फ़, मक्खन, तेल, टूथपेस्ट या क्रीम न लगाएँ।",
+        "hinglish": "Cling film ya clean non-fluffy dressing se dheela dhakein. Ice, butter, oil, toothpaste ya cream na lagayein.",
+    },
+    "action_blisters": {
+        "en": "Do not burst blisters or peel skin. Keep the area clean and avoid rubbing.",
+        "hi": "छाले न फोड़ें और त्वचा न छीलें। हिस्सा साफ़ रखें और रगड़ से बचाएँ।",
+        "hinglish": "Chhale na phodein aur skin na chheelein. Hissa clean rakhein aur rubbing se bachein.",
+    },
+    "action_hospital_now": {
+        "en": "Go to the nearest hospital now or call {numbers}; do not drive yourself if seriously unwell.",
+        "hi": "अभी नज़दीकी अस्पताल जाएँ या {numbers} पर कॉल करें; गंभीर हालत में खुद वाहन न चलाएँ।",
+        "hinglish": "Abhi nearest hospital jaayein ya {numbers} par call karein; serious haal mein khud drive na karein.",
+    },
+    "action_hospital_today": {
+        "en": "Arrange medical assessment today because of the depth, size or body location.",
+        "hi": "गहराई, आकार या शरीर के स्थान के कारण आज ही डॉक्टर से जाँच कराएँ।",
+        "hinglish": "Depth, size ya body location ki wajah se aaj hi doctor se assessment karayein.",
+    },
+    "action_special_site": {
+        "en": "Because this involves the face, hand, foot, genital area or a major joint, get medical assessment today.",
+        "hi": "चेहरे, हाथ, पैर, गुप्तांग या बड़े जोड़ पर होने के कारण आज ही डॉक्टर को दिखाएँ।",
+        "hinglish": "Face, hand, foot, genital area ya major joint par hone ki wajah se aaj doctor ko dikhayein.",
+    },
+    "action_monitor": {
+        "en": "If it remains small and superficial, keep it covered and monitor for worsening pain, spreading redness, pus, fever or reduced movement.",
+        "hi": "अगर यह छोटा और सतही रहे तो ढककर रखें और बढ़ता दर्द, फैलती लालिमा, पस, बुखार या कम हरकत देखें।",
+        "hinglish": "Agar chhota aur superficial rahe to cover rakhein aur badhta pain, failti redness, pus, fever ya kam movement dekhein.",
+    },
 
     # ---------- hospitals ----------
     "ask_place": {
