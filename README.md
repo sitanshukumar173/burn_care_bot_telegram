@@ -6,6 +6,7 @@ A Telegram chatbot that only answers questions about human burn injuries. It use
 - 🩹 **First aid** and 🛡 **prevention**: fixed, reviewed texts (`prompts.py`). They don't change between LLM replies.
 - 📍 **Nearby hospitals**: share your Telegram location, or type `/hospitals <city>`. Uses OpenStreetMap (free, no key). Shows the nearest hospitals and flags large government/teaching hospitals and burn units.
 - 💬 **Burn-only Q&A**: Gemini answers with structured output that includes an `in_scope` flag. Anything not about burns gets a fixed refusal. Follow-up questions can refer to the latest burn photo/report, hospital list, or earlier burn conversation.
+- 👁️ **Dedicated vision provider**: image analysis can use Gemini or the fast Groq multimodal endpoint independently from text Q&A. Configure `VISION_PROVIDER`, `GEMINI_VISION_MODELS`, or `GROQ_VISION_MODEL` in `.env`.
 - 💧 `/parkland <kg>`: Parkland fluid formula, as a reference for clinicians.
 
 ## Setup

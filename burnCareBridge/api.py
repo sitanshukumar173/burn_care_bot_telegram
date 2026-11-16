@@ -111,7 +111,15 @@ def get_llm() -> BurnLLM:
     global _llm
     if _llm is None:
         cfg = get_config()
-        _llm = BurnLLM(cfg.gemini_api_key, cfg.gemini_models, cfg.emergency_numbers)
+        _llm = BurnLLM(
+            cfg.gemini_api_key,
+            cfg.gemini_models,
+            cfg.emergency_numbers,
+            cfg.gemini_vision_models,
+            cfg.vision_provider,
+            cfg.groq_api_key,
+            cfg.groq_vision_model,
+        )
     return _llm
 
 

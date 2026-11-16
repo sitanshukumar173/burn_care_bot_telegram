@@ -99,6 +99,15 @@ def _serialize_hospitals(places: list[Place]) -> list[dict]:
     ]
 
 
+def _hospital_tags(place: Place, lang: str) -> str:
+    tags = []
+    if place.burn_unit:
+        tags.append(t(lang, "tag_burn"))
+    if place.major:
+        tags.append(t(lang, "tag_major"))
+    return "".join(tags)
+
+
 def _hospital_follow_up(text: str, context: ContextTypes.DEFAULT_TYPE) -> str | None:
     """Answer simple questions about the most recently displayed hospital list."""
     hospitals = context.user_data.get("last_hospitals")
@@ -503,9 +512,10 @@ async def _reply_hospitals(update: Update, context: ContextTypes.DEFAULT_TYPE,
         "",
     ]
     for p in places:
-        tag = t(lang, "tag_burn") if p.burn_unit else t(lang, "tag_major") if p.major else ""
         lines.append(f"<b>{html.escape(p.name)}</b>")
-        lines.append(f"{tag}{t(lang, 'kind_' + p.kind)} · {p.distance_km:.1f} km")
+        lines.append(
+            f"{_hospital_tags(p, lang)}{t(lang, 'kind_' + p.kind)} · {p.distance_km:.1f} km"
+        )
         if p.phone:
             lines.append(f"📞 {html.escape(p.phone)}")
         lines.append(f'<a href="{p.directions_url}">{t(lang, "directions")}</a>')
@@ -732,7 +742,15 @@ def main() -> None:
         .build()
     )
     app.bot_data["config"] = config
-    app.bot_data["llm"] = BurnLLM(config.gemini_api_key, config.gemini_models, config.emergency_numbers)
+    app.bot_data["llm"] = BurnLLM(
+        config.gemini_api_key,
+        config.gemini_models,
+        config.emergency_numbers,
+        config.gemini_vision_models,
+        config.vision_provider,
+        config.groq_api_key,
+        config.groq_vision_model,
+    )
     app.bot_data["finder"] = HospitalFinder(config.osm_user_agent)
     app.bot_data["analytics"] = Analytics(
         config.analytics_database,
@@ -758,7 +776,13 @@ def main() -> None:
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_error_handler(on_error)
 
-    log.info("CSJMU BurnCare Saathi bot started with models %s", ", ".join(config.gemini_models))
+    log.info(
+        "CSJMU BurnCare Saathi bot started with text models %s and vision models %s",
+        ", ".join(config.gemini_models),
+        f"{config.vision_provider}:{', '.join(config.gemini_vision_models)}"
+        if config.vision_provider == "gemini"
+        else f"{config.vision_provider}:{config.groq_vision_model}",
+    )
     app.run_polling(allowed_updates=Update.ALL_TYPES, poll_interval=0.0)
 
 

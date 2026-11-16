@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
-from bot import MAX_HISTORY_MESSAGES, _hospital_follow_up, _trim_history
+from bot import MAX_HISTORY_MESSAGES, _hospital_follow_up, _hospital_tags, _trim_history
+from hospitals import Place
 
 
 def test_context_keeps_only_three_latest_exchanges():
@@ -46,3 +47,21 @@ def test_hospital_follow_up_prefers_listed_burn_unit():
 
     assert answer is not None
     assert "Burn Centre" in answer
+
+
+def test_hospital_tags_show_all_matching_categories():
+    place = Place(
+        name="Specialist Hospital",
+        kind="hospital",
+        lat=0,
+        lon=0,
+        distance_km=1,
+        phone=None,
+        burn_unit=True,
+        major=True,
+    )
+
+    tags = _hospital_tags(place, "en")
+
+    assert "BURN-CARE SPECIALIST" in tags
+    assert "Major/government" in tags

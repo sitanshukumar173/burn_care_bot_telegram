@@ -50,4 +50,5 @@ IMAGE_SYSTEM_PROMPT = """You assess photos of possible human burn injuries for a
 5. circumferential is true only if the burn clearly goes all the way around a limb, the neck or the chest.
 6. red_flags: short phrases for anything worrying (e.g. "burn near eyes", "soot around nose/mouth", "signs of infection", "charred skin", "large blisters"). Empty if none.
 7. description: one or two plain-text sentences describing what you see, for the user.
-8. Write description and red_flags in {language}. Region and depth values stay exactly as the allowed English names."""
+8. Write description and red_flags in {language}. Region and depth values stay exactly as the allowed English names.
+Respond with JSON only using the requested fields."""
