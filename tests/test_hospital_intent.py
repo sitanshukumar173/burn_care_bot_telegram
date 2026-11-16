@@ -23,6 +23,8 @@ from hospitals import parse_hospital_request
     ("hospital kahan hai", None),
     ("बिहटा में अस्पताल", "बिहटा"),
     ("पटना के पास अस्पताल बताओ", "पटना"),
+    ("In this condition which hospital should I go?", None),
+    ("which hospital should I choose for a burn?", None),
 ])
 def test_detects_hospital_requests(text, place):
     assert parse_hospital_request(text) == (True, place)

@@ -239,6 +239,13 @@ _NOT_A_PLACE = {
     "नज़दीकी", "नजदीकी",
     "suggest", "tell", "give", "help", "recommend", "please", "pls", "plz", "send", "want", "need",
 }
+_HOSPITAL_RECOMMENDATION = re.compile(
+    r"\b(which|what|best|better|nearest|closest|recommend(?:ed)?|suggest)\b"
+    r".*\b(hospital|clinic|doctor|burn\s*(?:unit|center|centre))\b"
+    r"|\b(hospital|clinic|doctor|burn\s*(?:unit|center|centre))\b.*"
+    r"\b(which|what|best|better|nearest|closest|recommend(?:ed)?|suggest)\b",
+    re.IGNORECASE,
+)
 
 
 def _place_before(text: str) -> str | None:
@@ -260,7 +267,7 @@ def parse_hospital_request(text: str) -> tuple[bool, str | None]:
         return False, None
     match = _PLACE.search(text)
     place = match.group(1).strip(" ,") if match else _place_before(text)
-    if not _LOCATOR.search(text) and not place and len(text.split()) > 3:
+    if not _LOCATOR.search(text) and not place and len(text.split()) > 3 and not _HOSPITAL_RECOMMENDATION.search(text):
         return False, None  # e.g. "should I go to hospital for a small blister?"
     if place:
         place = re.sub(r"\s+(please|pls|plz)$", "", place, flags=re.IGNORECASE).strip()

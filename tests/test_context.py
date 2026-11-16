@@ -5,6 +5,7 @@ from bot import (
     MAX_HISTORY_MESSAGES,
     _apply_side_correction,
     _format_report,
+    _format_text_answer,
     _hospital_follow_up,
     _hospital_tags,
     _record_findings,
@@ -221,3 +222,15 @@ def test_llm_tries_next_model_after_malformed_json():
 
     assert reply == TextReply(in_scope=False, answer="")
     assert models.calls == ["first-model", "second-model"]
+
+
+def test_plain_text_answer_gets_deterministic_bullets():
+    formatted = _format_text_answer("Cool the burn with water.\nDo not use ice.")
+
+    assert formatted == "🩹 Guidance\n\n• Cool the burn with water.\n• Do not use ice."
+
+
+def test_structured_text_answer_is_not_double_formatted():
+    answer = "🩹 What to do now\n• Cool the burn with water."
+
+    assert _format_text_answer(answer) == answer

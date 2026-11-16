@@ -295,6 +295,17 @@ async def _send_long(update: Update, text: str, **kwargs) -> None:
         await update.effective_message.reply_text(chunk, **kwargs)
 
 
+def _format_text_answer(answer: str) -> str:
+    """Keep model replies readable even when the provider ignores formatting rules."""
+    cleaned = re.sub(r"\*\*(.*?)\*\*", r"\1", answer.strip())
+    if not cleaned:
+        return cleaned
+    lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+    if any(line.startswith(("•", "-", "1.", "🩹", "🏥", "⚠️", "🚑", "✅")) for line in lines):
+        return cleaned
+    return "🩹 Guidance\n\n" + "\n".join(f"• {line}" for line in lines)
+
+
 # ---------- language ----------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -769,6 +780,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await BUTTON_HANDLERS[action](update, context)
         return
 
+    hospital_answer = _hospital_follow_up(text, context)
+    if hospital_answer:
+        await update.effective_message.reply_text(hospital_answer, parse_mode=ParseMode.HTML)
+        return
+
     # "hospital near me", "Bihta mein hospital", "नजदीकी अस्पताल": no LLM needed.
     wants_hospital, place = parse_hospital_request(text)
     if wants_hospital:
@@ -805,11 +821,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             )
             return
 
-    hospital_answer = _hospital_follow_up(text, context)
-    if hospital_answer:
-        await update.effective_message.reply_text(hospital_answer, parse_mode=ParseMode.HTML)
-        return
-
     llm: BurnLLM = context.bot_data["llm"]
     history: list[tuple[str, str]] = context.user_data.setdefault("history", [])
     # Persistence can contain state written by an older version. Trim before
@@ -833,7 +844,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     history.extend([("user", text), ("model", reply.answer)])
     _trim_history(history)
-    await _send_long(update, reply.answer)
+    await _send_long(update, _format_text_answer(reply.answer))
 
 
 async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
