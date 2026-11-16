@@ -60,4 +60,8 @@ bot never sends message text or images to the sheet.
 - **Free-tier limits:** Gemini free quotas are per minute and per day. If they run out, the bot replies with a "try again" message plus first-aid guidance.
 - **Hospital data** comes from OpenStreetMap and is incomplete in places. Few hospitals are tagged as burn units.
 - Emergency numbers default to India (112 / 108). Change `EMERGENCY_NUMBERS` in `.env` for other countries.
-- Conversation state lives in memory and is lost on restart.
+- The Q&A context is local to the bot host, uses no database, and keeps only the
+  latest three user/model exchanges per user in `bot_state.pickle`. Rejected
+  unrelated questions are not added to that context. Telegram bots cannot write
+  state directly to a user's device; user-device-only storage would require a
+  separate Telegram client application.

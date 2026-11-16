@@ -54,7 +54,8 @@ logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s", lev
 logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("burnbot")
 
-HISTORY_TURNS = 6
+CONTEXT_EXCHANGES = 3
+MAX_HISTORY_MESSAGES = CONTEXT_EXCHANGES * 2
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 TELEGRAM_LIMIT = 4000
 BUTTON_ACTIONS = button_actions()
@@ -72,6 +73,11 @@ def _numbers(context: ContextTypes.DEFAULT_TYPE) -> str:
 
 def _get_case(context: ContextTypes.DEFAULT_TYPE) -> BurnCase:
     return context.user_data.setdefault("case", BurnCase())
+
+
+def _trim_history(history: list[tuple[str, str]]) -> None:
+    """Keep only the most recent three user/model exchanges in local state."""
+    del history[:-MAX_HISTORY_MESSAGES]
 
 
 def _main_keyboard(lang: str) -> ReplyKeyboardMarkup:
@@ -484,7 +490,10 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
 
     llm: BurnLLM = context.bot_data["llm"]
-    history: list = context.user_data.setdefault("history", [])
+    history: list[tuple[str, str]] = context.user_data.setdefault("history", [])
+    # Persistence can contain state written by an older version. Trim before
+    # sending it to the model as well as after appending the new exchange.
+    _trim_history(history)
     try:
         async with keep_typing(context.bot, update.message.chat_id):
             reply = await llm.answer(text, history, LLM_LANGUAGE[lang])
@@ -497,7 +506,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
 
     history.extend([("user", text), ("model", reply.answer)])
-    del history[:-HISTORY_TURNS]
+    _trim_history(history)
     await _send_long(update, reply.answer)
 
 
