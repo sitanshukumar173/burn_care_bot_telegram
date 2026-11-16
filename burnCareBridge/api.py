@@ -69,6 +69,7 @@ from tbsa import (
 )
 from hospitals import HospitalFinder
 from llm import BurnLLM, LLMError
+from bot import _quick_actions
 import re
 
 logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s", level=logging.INFO)
@@ -180,6 +181,16 @@ def strings(lang: str | None = None):
         "hospitals_title", "emergency_line", "kind_hospital", "kind_clinic",
         "tag_burn", "tag_major", "directions", "hospitals_footer",
         "map_down", "no_hospitals", "disclaimer", "generic_error",
+        "report_title", "report_summary", "report_findings", "report_recommendation",
+        "report_safety", "burned_areas", "region_line", "tbsa_line",
+        "superficial_line", "palm_check", "level_emergency", "level_hospital",
+        "level_home", "noticed", "elec_chem", "next_steps", "mechanism_label",
+        "mechanism_thermal_or_contact", "mechanism_chemical_possible",
+        "mechanism_electrical_possible", "mechanism_friction_possible",
+        "mechanism_sun_or_radiation_possible", "mechanism_unknown", "quick_actions",
+        "action_stop_cause", "action_cool", "action_chemical", "action_electrical",
+        "action_cover", "action_blisters", "action_hospital_now",
+        "action_hospital_today", "action_special_site", "action_monitor",
     )
     out = {}
     for key in keys:
@@ -258,6 +269,7 @@ async def photo(
         "is_burn": findings.is_burn,
         "description": findings.description,
         "red_flags": findings.red_flags,
+        "mechanism": findings.mechanism,
         "circumferential": findings.circumferential,
         "regions": [
             {"region": f.region.value, "fraction": f.fraction, "depth": f.depth.value}
@@ -281,16 +293,41 @@ class AssessRequest(BaseModel):
     lang: str | None = None
     description: str = ""
     red_flags: list[str] = Field(default_factory=list)
+    mechanism: str = "unknown"
 
 
-def _format_report_text(case: BurnCase, lang: str, numbers: str, description: str, red_flags: list[str]) -> dict:
+def _format_report_text(
+    case: BurnCase,
+    lang: str,
+    numbers: str,
+    description: str,
+    red_flags: list[str],
+    mechanism: str = "unknown",
+) -> dict:
     """Port of the Telegram bot's _format_report to structured JSON + plain text."""
     result = assess(case)
+    allowed_mechanisms = {
+        "thermal_or_contact",
+        "chemical_possible",
+        "electrical_possible",
+        "friction_possible",
+        "sun_or_radiation_possible",
+        "unknown",
+    }
+    mechanism = mechanism if mechanism in allowed_mechanisms else "unknown"
     lines = [t(lang, "report_title", age=age_label(case.age, lang))]
     if description:
         lines.append(f"<i>{html.escape(description)}</i>")
     lines.append("")
-    lines.append(t(lang, "burned_areas"))
+    lines.append(t(lang, "report_summary"))
+    lines.append(t(lang, f"level_{result.level}", numbers=numbers))
+    lines.append(t(lang, "tbsa_line", tbsa=f"{result.tbsa:.1f}"))
+    if result.superficial_only:
+        lines.append(t(lang, "superficial_line", pct=f"{result.superficial_only:.1f}"))
+    lines.append(t(lang, "mechanism_label"))
+    lines.append(f"• {t(lang, 'mechanism_' + mechanism)}")
+    lines.append("")
+    lines.append(t(lang, "report_findings"))
     rows = []
     for burn, pct in result.rows:
         region_label = region_name(burn.region, lang)
@@ -308,19 +345,19 @@ def _format_report_text(case: BurnCase, lang: str, numbers: str, description: st
             "pct": round(pct, 1),
         })
     lines.append("")
-    tbsa_line = t(lang, "tbsa_line", tbsa=f"{result.tbsa:.1f}")
-    lines.append(tbsa_line)
-    if result.superficial_only:
-        lines.append(t(lang, "superficial_line", pct=f"{result.superficial_only:.1f}"))
     lines.append(t(lang, "palm_check"))
     lines.append("")
-    lines.append(t(lang, f"level_{result.level}", numbers=numbers))
+    lines.append(t(lang, "report_recommendation"))
     lines.extend("• " + t(lang, "reason_" + key, **params) for key, params in result.reasons)
+    lines.append(t(lang, "quick_actions"))
+    lines.extend("• " + action for action in _quick_actions(
+        case, result, lang, numbers, mechanism
+    ))
+    lines.append("")
+    lines.append(t(lang, "report_safety"))
     if red_flags:
-        lines.append("")
         lines.append(t(lang, "noticed"))
         lines.extend("• " + html.escape(f) for f in red_flags)
-    lines.append("")
     lines.append(t(lang, "elec_chem"))
     lines.append("")
     lines.append(t(lang, "next_steps"))
@@ -332,6 +369,7 @@ def _format_report_text(case: BurnCase, lang: str, numbers: str, description: st
         "level": result.level,
         "rows": rows,
         "reasons": [t(lang, "reason_" + key, **params) for key, params in result.reasons],
+        "mechanism": mechanism,
         "report_text": "\n".join(lines),
     }
 
@@ -358,7 +396,9 @@ async def assess_endpoint(body: AssessRequest):
     if not case.burns:
         raise HTTPException(status_code=400, detail="No valid burns supplied")
 
-    return _format_report_text(case, lang, numbers, body.description, body.red_flags)
+    return _format_report_text(
+        case, lang, numbers, body.description, body.red_flags, body.mechanism
+    )
 
 
 # ---------------- Parkland formula ----------------

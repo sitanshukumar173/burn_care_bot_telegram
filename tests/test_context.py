@@ -1,17 +1,19 @@
+import asyncio
 from types import SimpleNamespace
 
 from bot import (
     MAX_HISTORY_MESSAGES,
     _apply_side_correction,
+    _format_report,
     _hospital_follow_up,
     _hospital_tags,
     _record_findings,
     _trim_history,
 )
 from hospitals import Place
-from llm import ImageFindings, RegionFinding
+from llm import BurnLLM, ImageFindings, RegionFinding, TextReply
 from llm import _normalize_vision_payload
-from tbsa import Depth, Region, RegionBurn, BurnCase
+from tbsa import AgeGroup, BurnCase, Depth, Region, RegionBurn
 
 
 def test_context_keeps_only_three_latest_exchanges():
@@ -129,3 +131,80 @@ def test_vision_payload_normalizes_bare_region_and_marks_side_uncertain():
 
     assert normalized["regions"][0]["region"] == "right_hand_back"
     assert normalized["side_uncertain"] is True
+
+
+def test_report_keeps_unknown_mechanism_safe_and_structured():
+    case = BurnCase(
+        age=AgeGroup.ADULT,
+        burns={
+            Region.LEFT_FOREARM_FRONT: RegionBurn(
+                Region.LEFT_FOREARM_FRONT, 0.1, Depth.SUPERFICIAL
+            )
+        },
+    )
+
+    report = _format_report(
+        case,
+        "en",
+        "112",
+        "Visible burn finding.",
+        ["red flag & check"],
+        mechanism="provider_value_not_allowed",
+    )
+
+    assert "SUMMARY" in report
+    assert "VISIBLE FINDINGS" in report
+    assert "What to do now" in report
+    assert "red flag &amp; check" in report
+    assert "cause cannot be determined reliably" in report
+
+
+def test_hospital_specialist_tags_are_separate_highlighted_lines():
+    place = Place(
+        name="Specialist Hospital",
+        kind="hospital",
+        lat=0,
+        lon=0,
+        distance_km=1,
+        phone=None,
+        burn_unit=True,
+        major=True,
+    )
+
+    tags = _hospital_tags(place, "en")
+
+    assert "\n" in tags
+    assert "<b>BURN-CARE SPECIALIST</b>" in tags
+    assert "<b>Major/government</b>" in tags
+
+
+def test_llm_tries_next_model_after_malformed_json():
+    class FakeModels:
+        def __init__(self):
+            self.calls = []
+            self.responses = [
+                SimpleNamespace(parsed=None, text='{"in_scope": true'),
+                SimpleNamespace(parsed=None, text='{"in_scope": false, "answer": ""}'),
+            ]
+
+        async def generate_content(self, *, model, contents, config):
+            self.calls.append(model)
+            return self.responses.pop(0)
+
+    models = FakeModels()
+    llm = object.__new__(BurnLLM)
+    llm._client = SimpleNamespace(
+        aio=SimpleNamespace(models=models)
+    )
+
+    reply = asyncio.run(
+        llm._generate(
+            [],
+            "scope prompt",
+            TextReply,
+            models=["first-model", "second-model"],
+        )
+    )
+
+    assert reply == TextReply(in_scope=False, answer="")
+    assert models.calls == ["first-model", "second-model"]

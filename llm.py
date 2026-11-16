@@ -121,7 +121,7 @@ class BurnLLM:
             automatic_function_calling=types.AutomaticFunctionCallingConfig(
                 disable=True),
         )
-        response = None
+        last_error = "all models failed"
         for model in models or self._models:
             try:
                 response = await asyncio.wait_for(
@@ -130,22 +130,22 @@ class BurnLLM:
                     ),
                     timeout=timeout,
                 )
-                break
             # overload (503), quota (429), network, safety blocks, timeout
             except Exception as exc:
                 err_text = str(exc)[:120] or type(exc).__name__
                 log.warning("Gemini model %s failed: %s", model, err_text)
-        if response is None:
-            log.error("All Gemini models failed or are out of quota")
-            raise LLMError("all models failed")
+                continue
 
-        if isinstance(response.parsed, schema):
-            return response.parsed
-        try:
-            return schema.model_validate(json.loads(response.text or ""))
-        except Exception as exc:
-            log.error("Unparseable Gemini response: %r", response.text)
-            raise LLMError("unparseable response") from exc
+            if isinstance(response.parsed, schema):
+                return response.parsed
+            try:
+                return schema.model_validate(json.loads(response.text or ""))
+            except Exception as exc:
+                last_error = "unparseable response"
+                log.warning("Gemini model %s returned invalid JSON: %s", model, str(exc)[:120])
+
+        log.error("All Gemini models failed or returned invalid output")
+        raise LLMError(last_error)
 
     async def answer(
         self,
