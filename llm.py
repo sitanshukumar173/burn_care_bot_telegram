@@ -33,6 +33,7 @@ class ImageFindings(BaseModel):
     regions: list[RegionFinding]
     circumferential: bool
     red_flags: list[str]
+    side_uncertain: bool = False
 
 
 class LLMError(Exception):

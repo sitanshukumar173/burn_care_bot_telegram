@@ -47,8 +47,8 @@ from i18n import (
     region_name,
     t,
 )
-from llm import BurnLLM, LLMError
-from tbsa import CHILD_GROUPS, AgeGroup, BurnCase, RegionBurn, assess, parkland_ml
+from llm import BurnLLM, ImageFindings, LLMError
+from tbsa import CHILD_GROUPS, AgeGroup, BurnCase, Region, RegionBurn, assess, parkland_ml
 
 logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s", level=logging.INFO)
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -67,6 +67,7 @@ HOSPITAL_FOLLOW_UP = re.compile(
     r"|कौन सा|कौनसा|सबसे अच्छा|बेहतर|नज़दीकी|नजदीकी|सरकारी",
     re.IGNORECASE,
 )
+LIMB_WORDS = re.compile(r"\b(hand|arm|forearm|हाथ|बांह|बाँह)\b", re.IGNORECASE)
 LOGO_PATH = Path(__file__).parent / "logo.jpg"
 
 
@@ -173,6 +174,60 @@ def _burn_context(case: BurnCase, description: str, red_flags: list[str]) -> str
     if red_flags:
         lines.append(f"Photo red flags: {', '.join(red_flags)}")
     return "\n".join(lines)
+
+
+def _record_findings(
+    context: ContextTypes.DEFAULT_TYPE,
+    findings: ImageFindings,
+    confirmed_side: str | None = None,
+) -> BurnCase:
+    case = _get_case(context)
+    for finding in findings.regions:
+        region = finding.region
+        if confirmed_side and region.value.startswith(("left_", "right_")):
+            source_side = "right" if confirmed_side == "left" else "left"
+            region = Region(
+                region.value.replace(
+                    f"{source_side}_",
+                    f"{confirmed_side}_",
+                    1,
+                )
+            )
+        case.add(RegionBurn(region, finding.fraction, finding.depth))
+    case.circumferential = case.circumferential or findings.circumferential
+    context.user_data["last_findings"] = (findings.description, findings.red_flags)
+    context.user_data["last_burn_context"] = _burn_context(
+        case, findings.description, findings.red_flags
+    )
+    return case
+
+
+def _confirmed_side(text: str) -> str | None:
+    match = re.search(r"\b(left|right)\b", text, re.IGNORECASE)
+    return match.group(1).lower() if match else None
+
+
+def _apply_side_correction(text: str, case: BurnCase) -> str | None:
+    """Move photographed arm/hand findings when the user corrects the side."""
+    side_match = re.search(r"\b(left|right)\b", text, re.IGNORECASE)
+    if not side_match or not LIMB_WORDS.search(text):
+        return None
+    new_side = side_match.group(1).lower()
+    old_side = "right" if new_side == "left" else "left"
+    moved = []
+    for region, burn in list(case.burns.items()):
+        value = region.value
+        if not value.startswith(old_side + "_"):
+            continue
+        if not any(part in value for part in ("hand", "forearm", "upper_arm")):
+            continue
+        replacement = Region(value.replace(old_side + "_", new_side + "_", 1))
+        del case.burns[region]
+        case.burns[replacement] = RegionBurn(replacement, burn.fraction, burn.depth)
+        moved.append(replacement)
+    if not moved:
+        return None
+    return new_side
 
 
 def _llm_context(context: ContextTypes.DEFAULT_TYPE) -> str:
@@ -412,14 +467,12 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await message.reply_text(t(lang, "not_burn"))
         return
 
-    case = _get_case(context)
-    for f in findings.regions:
-        case.add(RegionBurn(f.region, f.fraction, f.depth))
-    case.circumferential = case.circumferential or findings.circumferential
-    context.user_data["last_findings"] = (findings.description, findings.red_flags)
-    context.user_data["last_burn_context"] = _burn_context(
-        case, findings.description, findings.red_flags
-    )
+    if findings.side_uncertain:
+        context.user_data["pending_findings"] = findings
+        await message.reply_text(t(lang, "side_question"))
+        return
+
+    case = _record_findings(context, findings)
     log.info("Photo assessed: %d regions", len(findings.regions))
 
     if case.age is None:
@@ -615,6 +668,47 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if context.user_data.pop("awaiting_place", False) and len(text.split()) <= 6 and "?" not in text:
         await _hospitals_for_place(update, context, text)
         return
+
+    case = context.user_data.get("case")
+    pending_findings: ImageFindings | None = context.user_data.get("pending_findings")
+    if pending_findings:
+        confirmed_side = _confirmed_side(text)
+        if not confirmed_side:
+            await update.effective_message.reply_text(t(lang, "side_question"))
+            return
+        context.user_data.pop("pending_findings", None)
+        case = _record_findings(context, pending_findings, confirmed_side)
+        if case.age is None:
+            await update.effective_message.reply_text(
+                t(lang, "age_question"),
+                parse_mode=ParseMode.HTML,
+                reply_markup=_age_keyboard(lang),
+            )
+            return
+        description, red_flags = context.user_data.get("last_findings", ("", []))
+        await _send_long(
+            update,
+            _format_report(case, lang, _numbers(context), description, red_flags),
+            parse_mode=ParseMode.HTML,
+        )
+        return
+
+    if case and case.burns and case.age is not None:
+        corrected_side = _apply_side_correction(text, case)
+        if corrected_side:
+            description, red_flags = context.user_data.get("last_findings", ("", []))
+            context.user_data["last_burn_context"] = _burn_context(
+                case, description, red_flags
+            )
+            await update.effective_message.reply_text(
+                t(lang, "side_correction", side=corrected_side.capitalize())
+            )
+            await _send_long(
+                update,
+                _format_report(case, lang, _numbers(context), description, red_flags),
+                parse_mode=ParseMode.HTML,
+            )
+            return
 
     hospital_answer = _hospital_follow_up(text, context)
     if hospital_answer:

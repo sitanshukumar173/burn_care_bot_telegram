@@ -388,6 +388,16 @@ Photo lene se <b>pehle</b> jale hisse ko 20 minute behte paani mein thanda karei
         "hinglish": "Map par available jankari ke hisaab se main <b>{name}</b> ({distance} km) ko priority dunga/dungi, kyunki ise {reason} ke roop mein list kiya gaya hai. "
                     "Ye quality ranking nahi hai aur map data incomplete ho sakta hai. Emergency mein {numbers} par call karein aur mumkin ho to hospital ko pehle phone karein.",
     },
+    "side_correction": {
+        "en": "I updated the estimate to use the {side} side. Here is the corrected report:",
+        "hi": "मैंने अनुमान को {side} तरफ़ के अनुसार अपडेट कर दिया है। यह सही रिपोर्ट है:",
+        "hinglish": "Maine estimate ko {side} side ke hisaab se update kar diya hai. Ye corrected report hai:",
+    },
+    "side_question": {
+        "en": "I can see a burn, but the image does not reliably show whether it is on the left or right side. Please reply \"left hand\", \"right hand\", \"left arm\", or \"right arm\" so I do not put the finding on the wrong side.",
+        "hi": "मुझे जलन दिख रही है, लेकिन फ़ोटो से यह भरोसेमंद रूप से पता नहीं चल रहा कि यह बाईं या दाईं तरफ़ है। गलत तरफ़ दर्ज न करने के लिए \"बायाँ हाथ\" या \"दायाँ हाथ\" लिखें।",
+        "hinglish": "Mujhe burn dikh raha hai, lekin photo se reliably pata nahi chal raha ki ye left ya right side par hai. Galat side na likhne ke liye \"left hand\" ya \"right hand\" likhiye.",
+    },
 
     # ---------- photo flow ----------
     "image_too_large": {
